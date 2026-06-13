@@ -3,7 +3,7 @@ import {
   Dumbbell, Zap, Users, Calendar, Shield, TrendingUp,
   ChevronRight, Star, Check, Phone, Mail, MapPin,
   Instagram, Twitter, Youtube, ArrowRight, Clock, Award, Bell,
-  Eye, EyeOff, X
+  Eye, EyeOff, X, Menu
 } from "lucide-react";
 import { toast } from "sonner";
 import type { SiteContent, TrainerData } from "../App";
@@ -30,6 +30,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminPass, setShowAdminPass] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleAdminAccess = () => {
     if (adminPassword === "admin123") {
@@ -54,7 +55,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
   return (
     <div className="bg-background text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4 border-b border-border bg-background/90 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-8 py-4 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded flex items-center justify-center"><Dumbbell size={18} className="text-white" /></div>
           <span style={{ ...H(22), letterSpacing: "0.05em" }} className="text-foreground">IRON<span className="text-primary">FIT</span></span>
@@ -65,11 +66,62 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
             <a key={s} href={`#${s}`} className="text-muted-foreground hover:text-foreground transition-colors text-sm capitalize">{s}</a>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3">
           <button onClick={() => onNavigate("login")} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2">Log In</button>
           <button onClick={() => onNavigate("login")} className="bg-primary text-white px-5 py-2 text-sm hover:bg-primary/90 transition-colors" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>Join Now</button>
         </div>
+        <div className="flex md:hidden items-center gap-3">
+          <button onClick={() => onNavigate("login")} className="bg-primary text-white px-3 py-1.5 text-xs hover:bg-primary/90 transition-colors" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700 }}>Join</button>
+          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-foreground focus:outline-none p-1">
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </nav>
+
+      {/* Mobile Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 top-[65px] z-40 bg-background/98 backdrop-blur-md flex flex-col p-6 md:hidden border-b border-border transition-all">
+          <div className="flex flex-col gap-6 text-lg font-medium">
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onNavigate("profiles");
+              }} 
+              className="text-left text-foreground hover:text-primary transition-colors py-2 border-b border-border/20"
+            >
+              Trainers
+            </button>
+            {["classes","pricing","about"].map(s => (
+              <a 
+                key={s} 
+                href={`#${s}`} 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-foreground hover:text-primary transition-colors capitalize py-2 border-b border-border/20"
+              >
+                {s}
+              </a>
+            ))}
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onNavigate("login");
+              }} 
+              className="text-left text-foreground hover:text-primary transition-colors py-2 border-b border-border/20"
+            >
+              Log In
+            </button>
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsAdminModalOpen(true);
+              }} 
+              className="text-left text-primary hover:text-primary/80 transition-colors py-2"
+            >
+              Admin Portal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* HERO */}
       <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
@@ -80,7 +132,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
             <Zap size={12} className="text-primary" />
             <span className="text-primary text-xs tracking-widest uppercase">{content.heroBadge}</span>
           </div>
-          <h1 className="text-foreground mb-6 leading-none" style={{ ...H(Math.min(120, 64)), fontSize: "clamp(64px,10vw,120px)" }}>
+          <h1 className="text-foreground mb-6 leading-none" style={{ ...H(Math.min(120, 64)), fontSize: "clamp(44px,8vw,120px)" }}>
             {content.heroHeadline.split("\n").map((line, i) => (
               <span key={i}>{i === 1 ? <span className="text-primary">{line}</span> : line}{i < 2 ? <br /> : null}</span>
             ))}
@@ -172,7 +224,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
             </div>
             <button onClick={() => onNavigate("profiles")} className="text-primary text-sm flex items-center gap-1 hover:gap-2 transition-all">All profiles <ChevronRight size={16} /></button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {trainers.filter(t => t.active).slice(0, 4).map(t => (
               <div key={t.id} className="group cursor-pointer" onClick={() => onNavigate("profiles")}>
                 <div className="aspect-square overflow-hidden mb-3 bg-secondary" style={{ borderRadius: "var(--radius)" }}>
