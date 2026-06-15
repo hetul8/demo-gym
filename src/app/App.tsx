@@ -176,7 +176,7 @@ export default function App() {
     }
   };
 
-  // Hydrate states from localStorage on mount (always starts logged out)
+  // Hydrate states from localStorage on mount (restores active session if exists)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedBrand = localStorage.getItem("gym_brand_settings");
@@ -198,6 +198,17 @@ export default function App() {
       // If Supabase credentials exist, pull from Supabase REST API
       if (currentBrand.supabaseUrl && currentBrand.supabaseAnonKey) {
         syncFromSupabase(currentBrand.supabaseUrl, currentBrand.supabaseAnonKey);
+      }
+
+      // Restore active user session
+      const storedUser = localStorage.getItem("gym_active_user");
+      if (storedUser) {
+        const userObj: AuthUser = JSON.parse(storedUser);
+        setAuthUser(userObj);
+        if (userObj.role === "admin")        setView("admin");
+        else if (userObj.role === "trainer")  setView("trainer");
+        else if (userObj.role === "guest")    setView("guest");
+        else                                  setView("user");
       }
 
       setIsLoaded(true);
@@ -261,6 +272,7 @@ export default function App() {
 
   const handleLogin = (user: AuthUser) => {
     setAuthUser(user);
+    localStorage.setItem("gym_active_user", JSON.stringify(user));
     if (user.role === "admin")   setView("admin");
     else if (user.role === "trainer") setView("trainer");
     else if (user.role === "guest")   setView("guest");
@@ -269,6 +281,7 @@ export default function App() {
 
   const handleLogout = () => {
     setAuthUser(null);
+    localStorage.removeItem("gym_active_user");
     setView("landing");
   };
 

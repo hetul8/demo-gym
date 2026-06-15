@@ -423,6 +423,116 @@ export function UserPortal({
           </div>
         )}
 
+        {/* ════ HEALTH METRICS ════ */}
+        {tab === "health" && (
+          <div className="p-8">
+            <h1 style={H(30)} className="text-foreground mb-1">HEALTH & PERFORMANCE</h1>
+            <p className="text-muted-foreground text-sm mb-6">Track your fitness journey, weight trends, and BMI.</p>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              {/* Left Column: Log Entry Form */}
+              <div className="bg-card border border-border p-5" style={{ borderRadius: "var(--radius)" }}>
+                <h3 style={H(18)} className="text-foreground mb-4 font-semibold uppercase">Log New Entry</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-white/50 block mb-1">Weight (kg)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 75.5"
+                      value={logForm.weight}
+                      onChange={e => setLogForm(p => ({ ...p, weight: e.target.value }))}
+                      className="w-full bg-secondary/30 border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                      style={{ borderRadius: "var(--radius)" }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-white/50 block mb-1">Height (cm)</label>
+                      <input
+                        type="number"
+                        placeholder="165"
+                        value={logForm.height}
+                        onChange={e => setLogForm(p => ({ ...p, height: e.target.value }))}
+                        className="w-full bg-secondary/30 border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                        style={{ borderRadius: "var(--radius)" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-white/50 block mb-1">Age</label>
+                      <input
+                        type="number"
+                        placeholder="28"
+                        value={logForm.age}
+                        onChange={e => setLogForm(p => ({ ...p, age: e.target.value }))}
+                        className="w-full bg-secondary/30 border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
+                        style={{ borderRadius: "var(--radius)" }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/50 block mb-1">Notes</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Felt strong during squats"
+                      value={logForm.notes}
+                      onChange={e => setLogForm(p => ({ ...p, notes: e.target.value }))}
+                      className="w-full bg-secondary/30 border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none"
+                      style={{ borderRadius: "var(--radius)" }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleLogHealth}
+                    className="w-full mt-2 bg-primary text-white py-2 text-sm hover:bg-primary/90 transition-all font-semibold"
+                    style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif" }}
+                  >
+                    SAVE LOG ENTRY
+                  </button>
+                </div>
+              </div>
+
+              {/* Middle & Right Column: Chart & Log History */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-card border border-border p-5" style={{ borderRadius: "var(--radius)" }}>
+                  <h3 style={H(18)} className="text-foreground mb-4 font-semibold uppercase">Weight Progress Trend</h3>
+                  <div className="w-full h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[...healthLogs].reverse()}>
+                        <defs>
+                          <linearGradient id="healthGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef2d2d" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#ef2d2d" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                        <XAxis dataKey="date" tick={{ fill:"#777", fontSize:10 }} axisLine={false} tickLine={false} />
+                        <YAxis domain={['auto', 'auto']} tick={{ fill:"#777", fontSize:10 }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={TT} />
+                        <Area type="monotone" dataKey="weight" stroke="#ef2d2d" fill="url(#healthGrad)" strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border p-5" style={{ borderRadius: "var(--radius)" }}>
+                  <h3 style={H(18)} className="text-foreground mb-3 font-semibold uppercase">History Log</h3>
+                  <div className="max-h-[200px] overflow-y-auto space-y-2">
+                    {healthLogs.map((log, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-secondary/20 border border-border/40 text-xs" style={{ borderRadius: "var(--radius)" }}>
+                        <div>
+                          <p className="text-foreground font-semibold">{log.date} · {log.weight} kg</p>
+                          {log.notes && <p className="text-muted-foreground text-[10px] mt-0.5">{log.notes}</p>}
+                        </div>
+                        <span className="text-primary font-bold">BMI: {log.bmi}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ════ NOTIFICATIONS ════ */}
         {tab === "notifications" && (
           <div className="p-8">
