@@ -73,6 +73,7 @@ export interface BrandSettings {
   email: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  razorpayKeyId?: string;
 }
 
 export interface BroadcastMessage {

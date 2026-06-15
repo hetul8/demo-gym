@@ -393,9 +393,17 @@ export function Landing({ onNavigate, content, trainers, brandSettings }: Landin
             </div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-8 pt-8 border-t border-border flex items-center justify-between">
-          <p className="text-muted-foreground text-xs">© 2026 {brandSettings.name}. All rights reserved.</p>
-          <p className="text-muted-foreground text-xs">Powered by Razorpay · GST: 27XXXXX1234X1ZX</p>
+        <div className="max-w-6xl mx-auto mt-8 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-muted-foreground text-xs">© 2026 {brandSettings.name}. All rights reserved.</p>
+            <p className="text-white/30 text-[10px] leading-relaxed max-w-xl">
+              Disclaimer: Please consult a physician before starting any exercise program. Gym facilities and programs involve risk of injury. By signing up, you agree to our Terms of Service & Privacy Policy.
+            </p>
+          </div>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <button onClick={() => alert("Terms of Service:\n1. Membership is non-transferable.\n2. Standard gym rules apply.\n3. Cancellations require 7 days notice.")} className="hover:text-foreground">Terms of Service</button>
+            <button onClick={() => alert("Privacy Policy:\n1. We protect your personal data securely.\n2. We do not sell user details to third parties.\n3. WhatsApp alerts are sent only for updates and reminders.")} className="hover:text-foreground">Privacy Policy</button>
+          </div>
         </div>
       </footer>
 

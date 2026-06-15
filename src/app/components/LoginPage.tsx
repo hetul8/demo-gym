@@ -229,6 +229,7 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
           customerEmail={pendingUser.email}
           customerPhone={pendingUser.phone || ""}
           gymName={brandSettings.name}
+          razorpayKeyId={brandSettings.razorpayKeyId}
         />
       )}
 

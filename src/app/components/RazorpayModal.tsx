@@ -11,6 +11,7 @@ interface RazorpayModalProps {
   customerEmail: string;
   customerPhone: string;
   gymName: string;
+  razorpayKeyId?: string;
 }
 
 type PaymentMethod = "card" | "upi" | "qr" | "netbanking";
@@ -25,6 +26,7 @@ export function RazorpayModal({
   customerEmail,
   customerPhone,
   gymName,
+  razorpayKeyId,
 }: RazorpayModalProps) {
   const [activeTab, setActiveTab] = useState<PaymentMethod>("card");
   const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
@@ -46,10 +48,74 @@ export function RazorpayModal({
     if (isOpen) {
       setStatus("idle");
       setProgress(0);
+
+      if (razorpayKeyId) {
+        // Load real Razorpay script dynamically
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        script.onload = () => {
+          const options = {
+            key: razorpayKeyId,
+            amount: amount * 100, // in paise
+            currency: "INR",
+            name: gymName,
+            description: itemName,
+            prefill: {
+              name: customerName,
+              email: customerEmail,
+              contact: customerPhone,
+            },
+            theme: {
+              color: "#ef2d2d",
+            },
+            handler: function (response: any) {
+              onSuccess({
+                method: "Razorpay Gateway",
+                transactionId: response.razorpay_payment_id || "pay_rzp_mock",
+              });
+              onClose();
+            },
+            modal: {
+              ondismiss: function () {
+                onClose();
+              }
+            }
+          };
+          try {
+            const rzp = new (window as any).Razorpay(options);
+            rzp.open();
+          } catch (e) {
+            console.error("Failed to open Razorpay:", e);
+          }
+        };
+        script.onerror = () => {
+          console.error("Razorpay script load error");
+        };
+        document.body.appendChild(script);
+        return () => {
+          if (document.body.contains(script)) {
+            document.body.removeChild(script);
+          }
+        };
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, razorpayKeyId, amount, gymName, itemName, customerName, customerEmail, customerPhone]);
 
   if (!isOpen) return null;
+
+  if (razorpayKeyId) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="bg-[#1a1c24] border border-white/10 p-8 rounded-2xl text-center max-w-sm w-full shadow-2xl">
+          <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+          <h3 className="text-white font-semibold text-base mb-1">Connecting to Secure Razorpay Gateway...</h3>
+          <p className="text-white/60 text-xs mb-6">Complete your payment in the secure Checkout popup.</p>
+          <button onClick={onClose} className="text-white/40 hover:text-white text-xs border border-white/10 px-4 py-2 rounded">Cancel</button>
+        </div>
+      </div>
+    );
+  }
 
   const handleStartPayment = (methodName: string) => {
     setStatus("processing");

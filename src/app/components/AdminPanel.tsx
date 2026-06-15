@@ -141,6 +141,23 @@ export function AdminPanel({
     toast.success(`${m?.name} status toggled`);
   };
 
+  const handleMarkPaidOffline = (id: string) => {
+    setMembers(p => p.map(m => {
+      if (m.id === id) {
+        return {
+          ...m,
+          status: "active" as const,
+          role: m.role === "guest" ? "pro" : m.role,
+          plan: m.plan || "PRO",
+          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+        };
+      }
+      return m;
+    }));
+    const m = members.find(x => x.id === id);
+    toast.success(`Payment marked offline for ${m?.name || "Member"}. Plan activated/renewed for 30 days!`);
+  };
+
   const handleAddMember = () => {
     const nameTrim = newMemberForm.name.trim();
     const emailTrim = newMemberForm.email.trim();
@@ -443,8 +460,12 @@ export function AdminPanel({
                   {[["ID",selectedMember.id],["Plan",selectedMember.plan || "Free Day Pass"],["Role",selectedMember.role],["Joined",selectedMember.joined || "N/A"]].map(([k,v]) => (
                     <div key={k} className="flex justify-between py-2.5 border-b border-border text-sm"><span className="text-muted-foreground">{k}</span><span className="text-foreground font-medium">{v}</span></div>
                   ))}
-                  <div className="flex gap-2 mt-5">
-                    <button onClick={()=>{sendWhatsAppReminder(selectedMember); setSelectedMember(null);}} className="flex-1 py-2 text-sm bg-primary text-white hover:bg-primary/90 rounded" style={{borderRadius:"var(--radius)"}}>WhatsApp Reminder</button>
+                  <div className="flex flex-col gap-2 mt-5">
+                    <button onClick={()=>{sendWhatsAppReminder(selectedMember); setSelectedMember(null);}} className="w-full py-2.5 text-sm bg-primary text-white hover:bg-primary/90 rounded font-semibold" style={{borderRadius:"var(--radius)"}}>WhatsApp Reminder</button>
+                    <button onClick={()=>{handleMarkPaidOffline(selectedMember.id); setSelectedMember(null);}} className="w-full py-2.5 text-sm bg-green-500 hover:bg-green-600 text-white rounded font-semibold animate-pulse" style={{borderRadius:"var(--radius)"}}>Mark Payment Received Offline</button>
+                    <button onClick={()=>{toggleBlock(selectedMember.id); setSelectedMember(null);}} className="w-full py-2.5 text-sm border border-red-500/50 hover:bg-red-500/10 text-red-400 rounded font-semibold" style={{borderRadius:"var(--radius)"}}>
+                      {selectedMember.status === "blocked" ? "Unblock Member" : "Block Member"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -514,8 +535,102 @@ export function AdminPanel({
             {/* ── HERO ── */}
             {contentSection === "hero" && (
               <div className="space-y-4 max-w-xl">
+                <div><label className="text-muted-foreground text-xs block mb-1.5">Hero Badge</label><input type="text" value={localContent.heroBadge} onChange={e=>setLocalContent(p=>({...p,heroBadge:e.target.value}))} className="w-full bg-card border border-border px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
                 <div><label className="text-muted-foreground text-xs block mb-1.5">Hero Headline</label><textarea rows={3} value={localContent.heroHeadline} onChange={e=>setLocalContent(p=>({...p,heroHeadline:e.target.value}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/></div>
                 <div><label className="text-muted-foreground text-xs block mb-1.5">Hero Subtitle</label><textarea rows={2} value={localContent.heroSubHeadline} onChange={e=>setLocalContent(p=>({...p,heroSubHeadline:e.target.value}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/></div>
+              </div>
+            )}
+
+            {/* ── PRICING ── */}
+            {contentSection === "pricing" && (
+              <div className="space-y-4 max-w-xl">
+                <h3 className="text-xs uppercase text-primary font-bold tracking-wider mb-2">Plan Pricing (₹)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="text-muted-foreground text-xs block mb-1">Starter Plan Monthly</label><input type="number" value={localContent.pricing.starter_mo} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,starter_mo:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                  <div><label className="text-muted-foreground text-xs block mb-1">Starter Plan Yearly</label><input type="number" value={localContent.pricing.starter_yr} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,starter_yr:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                  <div><label className="text-muted-foreground text-xs block mb-1">Pro Plan Monthly</label><input type="number" value={localContent.pricing.pro_mo} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,pro_mo:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                  <div><label className="text-muted-foreground text-xs block mb-1">Pro Plan Yearly</label><input type="number" value={localContent.pricing.pro_yr} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,pro_yr:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                  <div><label className="text-muted-foreground text-xs block mb-1">Elite Plan Monthly</label><input type="number" value={localContent.pricing.elite_mo} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,elite_mo:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                  <div><label className="text-muted-foreground text-xs block mb-1">Elite Plan Yearly</label><input type="number" value={localContent.pricing.elite_yr} onChange={e=>setLocalContent(p=>({...p,pricing:{...p.pricing,elite_yr:parseInt(e.target.value)||0}}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                </div>
+              </div>
+            )}
+
+            {/* ── FEATURES ── */}
+            {contentSection === "features" && (
+              <div className="space-y-4 max-w-xl">
+                <h3 className="text-xs uppercase text-primary font-bold tracking-wider mb-2">Plan Features (One per line)</h3>
+                <div>
+                  <label className="text-muted-foreground text-xs block mb-1">Starter Features</label>
+                  <textarea rows={4} value={localContent.starterFeatures.join("\n")} onChange={e=>setLocalContent(p=>({...p,starterFeatures:e.target.value.split("\n")}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/>
+                </div>
+                <div>
+                  <label className="text-muted-foreground text-xs block mb-1">Pro Features</label>
+                  <textarea rows={4} value={localContent.proFeatures.join("\n")} onChange={e=>setLocalContent(p=>({...p,proFeatures:e.target.value.split("\n")}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/>
+                </div>
+                <div>
+                  <label className="text-muted-foreground text-xs block mb-1">Elite Features</label>
+                  <textarea rows={4} value={localContent.eliteFeatures.join("\n")} onChange={e=>setLocalContent(p=>({...p,eliteFeatures:e.target.value.split("\n")}))} className="w-full bg-card border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/>
+                </div>
+              </div>
+            )}
+
+            {/* ── OFFERS ── */}
+            {contentSection === "offers" && (
+              <div className="space-y-4 max-w-xl">
+                <h3 className="text-xs uppercase text-primary font-bold tracking-wider mb-2">Active Promotional Offers</h3>
+                {localContent.offers.map((offer, idx) => (
+                  <div key={offer.id} className="bg-secondary/40 p-4 border border-border space-y-3" style={{borderRadius:"var(--radius)"}}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-foreground">Offer #{idx + 1}</span>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={offer.active} onChange={e=>setLocalContent(p=>({...p,offers:p.offers.map(o=>o.id===offer.id?{...o,active:e.target.checked}:o)}))} className="rounded border-border text-primary focus:ring-0 bg-transparent"/>
+                        Active
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-[10px] text-white/50 block mb-1">Title</label><input type="text" value={offer.title} onChange={e=>setLocalContent(p=>({...p,offers:p.offers.map(o=>o.id===offer.id?{...o,title:e.target.value}:o)}))} className="w-full bg-background border border-border px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                      <div><label className="text-[10px] text-white/50 block mb-1">Discount Details</label><input type="text" value={offer.discount} onChange={e=>setLocalContent(p=>({...p,offers:p.offers.map(o=>o.id===offer.id?{...o,discount:e.target.value}:o)}))} className="w-full bg-background border border-border px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── BLOG ── */}
+            {contentSection === "blog" && (
+              <div className="space-y-4 max-w-xl">
+                <h3 className="text-xs uppercase text-primary font-bold tracking-wider mb-2">Gym Blog Posts</h3>
+                {localContent.blogPosts.map((post, idx) => (
+                  <div key={post.id} className="bg-secondary/40 p-4 border border-border space-y-3" style={{borderRadius:"var(--radius)"}}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-foreground">Post #{idx + 1}</span>
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={post.published} onChange={e=>setLocalContent(p=>({...p,blogPosts:p.blogPosts.map(b=>b.id===post.id?{...b,published:e.target.checked}:b)}))} className="rounded border-border text-primary focus:ring-0 bg-transparent"/>
+                        Published
+                      </label>
+                    </div>
+                    <div><label className="text-[10px] text-white/50 block mb-1">Title</label><input type="text" value={post.title} onChange={e=>setLocalContent(p=>({...p,blogPosts:p.blogPosts.map(b=>b.id===post.id?{...b,title:e.target.value}:b)}))} className="w-full bg-background border border-border px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/></div>
+                    <div><label className="text-[10px] text-white/50 block mb-1">Excerpt</label><textarea rows={2} value={post.excerpt} onChange={e=>setLocalContent(p=>({...p,blogPosts:p.blogPosts.map(b=>b.id===post.id?{...b,excerpt:e.target.value}:b)}))} className="w-full bg-background border border-border px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary resize-none" style={{borderRadius:"var(--radius)"}}/></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── ANNOUNCEMENT ── */}
+            {contentSection === "announcement" && (
+              <div className="space-y-4 max-w-xl">
+                <h3 className="text-xs uppercase text-primary font-bold tracking-wider mb-2">Header Announcement Banner</h3>
+                <div className="bg-secondary/40 p-4 border border-border space-y-3" style={{borderRadius:"var(--radius)"}}>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mb-2">
+                    <input type="checkbox" checked={localContent.announcementActive} onChange={e=>setLocalContent(p=>({...p,announcementActive:e.target.checked}))} className="rounded border-border text-primary focus:ring-0 bg-transparent"/>
+                    Show Announcement Banner globally
+                  </label>
+                  <div>
+                    <label className="text-[10px] text-white/50 block mb-1">Banner Text</label>
+                    <input type="text" value={localContent.announcement} onChange={e=>setLocalContent(p=>({...p,announcement:e.target.value}))} className="w-full bg-background border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary" style={{borderRadius:"var(--radius)"}}/>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -585,6 +700,22 @@ export function AdminPanel({
                   className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
                   style={{ borderRadius: "var(--radius)" }}
                 />
+              </div>
+
+              <div className="border-t border-border/60 pt-4 mt-2">
+                <h4 className="text-xs text-primary font-bold uppercase mb-3 font-semibold">Payment Settings</h4>
+                <div>
+                  <label className="text-muted-foreground text-xs block mb-1.5 font-medium">Razorpay Key ID (Optional - Enter Test/Live Key to enable Real Gateway Mode)</label>
+                  <input
+                    type="text"
+                    value={settingsForm.razorpayKeyId || ""}
+                    onChange={e => setSettingsForm(p => ({ ...p, razorpayKeyId: e.target.value.trim() }))}
+                    placeholder="e.g. rzp_test_..."
+                    className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
+                    style={{ borderRadius: "var(--radius)" }}
+                  />
+                  <p className="text-[10px] text-white/40 mt-1 font-medium">If left empty, a simulated, secure interactive mock Checkout popup is displayed for demo/testing purposes.</p>
+                </div>
               </div>
 
               <div className="border-t border-border/60 pt-4 mt-2">

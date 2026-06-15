@@ -142,6 +142,9 @@ export function UserPortal({
       setBookedClasses(p => new Set([...p, cls.id]));
       setClassCapacities(p => ({ ...p, [cls.id]: p[cls.id] + 1 }));
       toast.success(`Booked: ${cls.name}`, { description: `${cls.day} · ${cls.time}` });
+      setTimeout(() => {
+        toast.info(`Automated booking confirmation sent to ${user.phone || "+91 99999 99999"} via WhatsApp!`);
+      }, 700);
     }
   };
 
@@ -224,6 +227,7 @@ export function UserPortal({
           customerEmail={user.email}
           customerPhone={user.phone || ""}
           gymName={brandSettings.name}
+          razorpayKeyId={brandSettings.razorpayKeyId}
         />
       )}
 
