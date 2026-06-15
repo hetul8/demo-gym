@@ -59,7 +59,10 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
       return;
     }
     const member = members.find(m => m.email.toLowerCase() === email.toLowerCase());
-    if (!member || password !== "member123") { toast.error("Invalid credentials"); return; }
+    if (!member || (member.password ? password !== member.password : password !== "member123")) {
+      toast.error("Invalid credentials");
+      return;
+    }
     toast.success(`Welcome back, ${member.name}!`);
     onLogin(member);
   };
@@ -136,6 +139,7 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
       status: "active",
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       revenue: PLANS.find(p => p.id === selectedPlan)?.price || 0,
+      password: signupPass,
     };
     
     setPendingUser(tempUser);
@@ -271,7 +275,6 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
         <div className="flex border-b border-border mb-8 overflow-x-auto">
           <button className={tabClass("member")}  onClick={() => setTab("member")}><User size={14} /> Member Login</button>
           <button className={tabClass("signup")}  onClick={() => setTab("signup")}><Shield size={14} /> Sign Up</button>
-          <button className={tabClass("guest")}   onClick={() => setTab("guest")}><ArrowRight size={14} /> Free Day Pass</button>
           <button className={tabClass("trainer")} onClick={() => setTab("trainer")}><Users size={14} /> Trainer Login</button>
         </div>
 
@@ -296,11 +299,8 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
             <button onClick={handleMemberLogin} className="w-full bg-primary text-white py-3 text-sm hover:bg-primary/90 transition-colors mb-4" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "16px", fontWeight: 700, letterSpacing: "0.05em" }}>LOG IN</button>
             <p className="text-center text-muted-foreground text-xs">Don't have an account? <button onClick={() => setTab("signup")} className="text-primary hover:underline">Sign up</button></p>
             <div className="mt-6 p-3 bg-card border border-border text-xs text-muted-foreground" style={{ borderRadius: "var(--radius)" }}>
-              <p className="mb-1 text-foreground text-xs font-medium">Demo accounts (password: member123)</p>
-              {members.map(m => (
-                <p key={m.id}>{m.plan}: {m.email} ({m.name})</p>
-              ))}
-              <p className="mt-1">Admin: admin@ironfit.in / admin123</p>
+              <p className="mb-1 text-foreground text-xs font-semibold">Portal Access</p>
+              <p>Admin Console: admin@ironfit.in / admin123</p>
             </div>
           </div>
         )}
@@ -349,33 +349,7 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
           </div>
         )}
 
-        {/* ── FREE DAY PASS ── */}
-        {tab === "guest" && (
-          <div className="max-w-sm w-full mx-auto">
-            <div className="inline-flex items-center gap-2 border border-primary/30 bg-primary/10 px-3 py-1 mb-4" style={{ borderRadius: "var(--radius)" }}>
-              <span className="text-primary text-xs">🎁 1 FREE DAY PASS</span>
-            </div>
-            <h2 style={H(28)} className="text-foreground mb-1">TRY {brandSettings.name.toUpperCase()} FREE</h2>
-            <p className="text-muted-foreground text-sm mb-6">Fill in your details to claim your complimentary day pass. No credit card required.</p>
-            <div className="space-y-3 mb-5">
-              {[
-                { label: "Full Name *",    val: guestName,  set: setGuestName,  type: "text",  placeholder: "Divya Sharma" },
-                { label: "Phone Number *", val: guestPhone, set: setGuestPhone, type: "tel",   placeholder: "+91 98001 11234" },
-                { label: "Email",          val: guestEmail, set: setGuestEmail, type: "email", placeholder: "divya@email.com" },
-                { label: "Fitness Goal",   val: guestGoal,  set: setGuestGoal,  type: "text",  placeholder: "e.g. Lose weight, Build strength…" },
-              ].map(({ label, val, set, type, placeholder }) => (
-                <div key={label}>
-                  <label className="text-muted-foreground text-xs block mb-1.5">{label}</label>
-                  <input type={type} value={val} onChange={e => set(e.target.value)} placeholder={placeholder} className="w-full bg-card border border-border px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" style={{ borderRadius: "var(--radius)" }} />
-                </div>
-              ))}
-            </div>
-            <button onClick={handleGuestAccess} className="w-full bg-primary text-white py-3 text-sm hover:bg-primary/90 transition-colors mb-4" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "16px", fontWeight: 700, letterSpacing: "0.05em" }}>
-              CLAIM MY FREE PASS
-            </button>
-            <p className="text-muted-foreground text-xs text-center">After your free day, explore our <button onClick={() => setTab("signup")} className="text-primary hover:underline">membership plans</button>.</p>
-          </div>
-        )}
+        {/* Removed FREE DAY PASS tab rendering content */}
 
         {/* ── TRAINER LOGIN ── */}
         {tab === "trainer" && (

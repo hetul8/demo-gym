@@ -29,6 +29,7 @@ export interface AuthUser {
   status?: "active" | "expired" | "blocked";
   expires?: string;
   revenue?: number;
+  password?: string;
 }
 
 export interface TrainerData {
@@ -74,6 +75,7 @@ export interface BrandSettings {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   razorpayKeyId?: string;
+  googleSheetUrl?: string;
 }
 
 export interface BroadcastMessage {
@@ -232,8 +234,18 @@ export default function App() {
           body: JSON.stringify(members)
         }).catch(err => console.error(err));
       }
+
+      // Sync to Google Sheet if Web App URL exists
+      if (brandSettings.googleSheetUrl) {
+        fetch(brandSettings.googleSheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "members", data: members })
+        }).catch(err => console.error(err));
+      }
     }
-  }, [members, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey]);
+  }, [members, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey, brandSettings.googleSheetUrl]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -267,8 +279,18 @@ export default function App() {
           body: JSON.stringify(broadcasts)
         }).catch(err => console.error(err));
       }
+
+      // Sync to Google Sheet if Web App URL exists
+      if (brandSettings.googleSheetUrl) {
+        fetch(brandSettings.googleSheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "broadcasts", data: broadcasts })
+        }).catch(err => console.error(err));
+      }
     }
-  }, [broadcasts, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey]);
+  }, [broadcasts, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey, brandSettings.googleSheetUrl]);
 
   const handleLogin = (user: AuthUser) => {
     setAuthUser(user);

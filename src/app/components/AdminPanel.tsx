@@ -719,6 +719,22 @@ export function AdminPanel({
               </div>
 
               <div className="border-t border-border/60 pt-4 mt-2">
+                <h4 className="text-xs text-primary font-bold uppercase mb-3 font-semibold">Google Sheets Database Sync (Optional)</h4>
+                <div>
+                  <label className="text-muted-foreground text-xs block mb-1.5 font-medium">Google Sheet Web App URL</label>
+                  <input
+                    type="text"
+                    value={settingsForm.googleSheetUrl || ""}
+                    onChange={e => setSettingsForm(p => ({ ...p, googleSheetUrl: e.target.value.trim() }))}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
+                    style={{ borderRadius: "var(--radius)" }}
+                  />
+                  <p className="text-[10px] text-white/40 mt-1">Provide a Google Apps Script Web App URL to push live member and broadcast records automatically.</p>
+                </div>
+              </div>
+
+              <div className="border-t border-border/60 pt-4 mt-2">
                 <h4 className="text-xs text-primary font-bold uppercase mb-3">Supabase Cloud Database (Optional)</h4>
                 
                 <div className="space-y-3">
