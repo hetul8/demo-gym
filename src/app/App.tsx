@@ -132,6 +132,7 @@ const INITIAL_BRAND_SETTINGS: BrandSettings = {
   email: "info@ironfit.in",
   supabaseUrl: "",
   supabaseAnonKey: "",
+  googleSheetUrl: "https://script.google.com/macros/s/AKfycbwfdKsUyPs7Faw2Pib1Ii7aqc7o9nXIacHjl1q846duBtHPMQUAI0obEElmxYwmJ9TX/exec"
 };
 
 /* ─── APP ───────────────────────────────────────────────────── */
@@ -200,6 +201,19 @@ export default function App() {
       // If Supabase credentials exist, pull from Supabase REST API
       if (currentBrand.supabaseUrl && currentBrand.supabaseAnonKey) {
         syncFromSupabase(currentBrand.supabaseUrl, currentBrand.supabaseAnonKey);
+      }
+
+      // If Google Sheet URL exists, pull live data on startup
+      if (currentBrand.googleSheetUrl) {
+        fetch(`${currentBrand.googleSheetUrl}?type=get_data`)
+          .then(res => res.json())
+          .then(data => {
+            if (data) {
+              if (data.members && data.members.length > 0) setMembers(data.members);
+              if (data.broadcasts && data.broadcasts.length > 0) setBroadcasts(data.broadcasts);
+            }
+          })
+          .catch(err => console.error("Google Sheet load failed:", err));
       }
 
       // Restore active user session
