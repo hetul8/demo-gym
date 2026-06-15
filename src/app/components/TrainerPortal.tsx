@@ -5,7 +5,7 @@ import {
   Plus, Edit2, Trash2, Check, X, Clock, Star,
   ChevronRight, Save, Eye, ToggleLeft, ToggleRight
 } from "lucide-react";
-import type { AuthUser, TrainerData } from "../App";
+import type { AuthUser, TrainerData, BrandSettings, BroadcastMessage } from "../App";
 
 const H = (s = 32) => ({ fontFamily: "'Barlow Condensed', sans-serif", fontSize: `${s}px`, fontWeight: 800, lineHeight: 1 });
 
@@ -21,9 +21,11 @@ interface TrainerPortalProps {
   trainers: TrainerData[];
   onNavigate: (v: string) => void;
   onUpdateTrainer: (id: number, data: Partial<TrainerData>) => void;
+  broadcasts?: BroadcastMessage[];
+  brandSettings?: BrandSettings;
 }
 
-export function TrainerPortal({ user, trainers, onNavigate, onUpdateTrainer }: TrainerPortalProps) {
+export function TrainerPortal({ user, trainers, onNavigate, onUpdateTrainer, broadcasts, brandSettings }: TrainerPortalProps) {
   const trainer = trainers.find(t => t.id === user.trainerId);
   const [tab, setTab] = useState<"overview" | "classes" | "availability" | "announcements" | "profile">("overview");
 

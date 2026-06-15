@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
 import { Landing }         from "./components/Landing";
 import { LoginPage }       from "./components/LoginPage";
@@ -7,8 +9,6 @@ import { UserPortal }      from "./components/UserPortal";
 import { TrainerPortal }   from "./components/TrainerPortal";
 import { TrainerProfiles } from "./components/TrainerProfiles";
 import { AdminPanel }      from "./components/AdminPanel";
-
-/* MARKER-MAKE-KIT-INVOKED */
 
 /* ─── SHARED TYPES ──────────────────────────────────────────── */
 export type Plan = "STARTER" | "PRO" | "ELITE";
@@ -26,6 +26,9 @@ export interface AuthUser {
   joined?: string;
   age?: number;
   height?: number;
+  status?: "active" | "expired" | "blocked";
+  expires?: string;
+  revenue?: number;
 }
 
 export interface TrainerData {
@@ -63,6 +66,21 @@ export interface SiteContent {
   blogPosts: { id: number; title: string; excerpt: string; date: string; published: boolean }[];
 }
 
+export interface BrandSettings {
+  name: string;
+  logoUrl: string;
+  phone: string;
+  email: string;
+}
+
+export interface BroadcastMessage {
+  id: string;
+  sender: string;
+  text: string;
+  timestamp: string;
+  targetGroup: "ALL" | "UNPAID" | "ACTIVE";
+}
+
 /* ─── INITIAL DATA ──────────────────────────────────────────── */
 const INITIAL_TRAINERS: TrainerData[] = [
   { id: 1, name: "Priya Sharma",  email: "priya@ironfit.in",  specialty: "Yoga & Mindfulness",    rating: 4.9, reviews: 312, sessions: 1240, fee: 1200, exp: "8 yrs",  cert: "RYT-500",    image: "photo-1594381898411-846e7d193883", bio: "Certified 500-hr yoga therapist specialising in stress relief and flexibility. Former national-level gymnast. She brings a holistic approach combining breathwork, alignment, and mindfulness to every session.", available: ["Mon 10AM", "Mon 3PM", "Wed 11AM", "Fri 10AM", "Sat 2PM"], announcements: [{ id: 1, text: "New: Sunrise Meditation session every Sunday 6AM – free for ELITE members!", date: "Jun 12" }], active: true },
@@ -96,12 +114,18 @@ const INITIAL_CONTENT: SiteContent = {
   ],
 };
 
-/* Demo accounts */
-const DEMO_MEMBERS: AuthUser[] = [
-  { id: "U001", name: "Anjali Verma",  email: "anjali@ironfit.in",  role: "pro",     plan: "PRO",     phone: "+91 98765 43210", joined: "Oct 12, 2025", age: 28, height: 165 },
-  { id: "U002", name: "Rohan Desai",   email: "rohan@ironfit.in",   role: "elite",   plan: "ELITE",   phone: "+91 97654 32109", joined: "Aug 3, 2025",  age: 34, height: 178 },
-  { id: "U003", name: "Sneha Joshi",   email: "sneha@ironfit.in",   role: "starter", plan: "STARTER", phone: "+91 92109 87654", joined: "Apr 8, 2026",  age: 22, height: 160 },
+const DEFAULT_MEMBERS: AuthUser[] = [
+  { id: "U001", name: "Anjali Verma",  email: "anjali@ironfit.in",  role: "pro",     plan: "PRO",     phone: "+91 98765 43210", joined: "Oct 12, 2025", age: 28, height: 165, status: "active", expires: "Jun 18, 2026", revenue: 33687 },
+  { id: "U002", name: "Rohan Desai",   email: "rohan@ironfit.in",   role: "elite",   plan: "ELITE",   phone: "+91 97654 32109", joined: "Aug 3, 2025",  age: 34, height: 178, status: "active", expires: "Aug 3, 2026",  revenue: 30999 },
+  { id: "U003", name: "Sneha Joshi",   email: "sneha@ironfit.in",   role: "starter", plan: "STARTER", phone: "+91 92109 87654", joined: "Apr 8, 2026",  age: 22, height: 160, status: "active", expires: "Jul 8, 2026",  revenue: 2997 },
 ];
+
+const INITIAL_BRAND_SETTINGS: BrandSettings = {
+  name: "IronFit Gym",
+  logoUrl: "",
+  phone: "919876543210",
+  email: "info@ironfit.in",
+};
 
 /* ─── APP ───────────────────────────────────────────────────── */
 type View = "landing" | "login" | "guest" | "user" | "trainer" | "profiles" | "admin";
@@ -109,11 +133,81 @@ type View = "landing" | "login" | "guest" | "user" | "trainer" | "profiles" | "a
 export default function App() {
   const [view, setView]         = useState<View>("landing");
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [trainers, setTrainers] = useState<TrainerData[]>(INITIAL_TRAINERS);
+
+  // Reactive states persisted to localStorage
+  const [members, setMembers] = useState<AuthUser[]>([]);
+  const [trainers, setTrainers] = useState<TrainerData[]>([]);
   const [content, setContent]   = useState<SiteContent>(INITIAL_CONTENT);
+  const [brandSettings, setBrandSettings] = useState<BrandSettings>(INITIAL_BRAND_SETTINGS);
+  const [broadcasts, setBroadcasts] = useState<BroadcastMessage[]>([]);
+  
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Hydrate states from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedMembers = localStorage.getItem("gym_members");
+      setMembers(storedMembers ? JSON.parse(storedMembers) : DEFAULT_MEMBERS);
+
+      const storedTrainers = localStorage.getItem("gym_trainers");
+      setTrainers(storedTrainers ? JSON.parse(storedTrainers) : INITIAL_TRAINERS);
+
+      const storedContent = localStorage.getItem("gym_content");
+      setContent(storedContent ? JSON.parse(storedContent) : INITIAL_CONTENT);
+
+      const storedBrand = localStorage.getItem("gym_brand_settings");
+      setBrandSettings(storedBrand ? JSON.parse(storedBrand) : INITIAL_BRAND_SETTINGS);
+
+      const storedBroadcasts = localStorage.getItem("gym_broadcasts");
+      setBroadcasts(storedBroadcasts ? JSON.parse(storedBroadcasts) : []);
+
+      // Restore active user session if exists
+      const storedUser = localStorage.getItem("gym_active_user");
+      if (storedUser) {
+        setAuthUser(JSON.parse(storedUser));
+      }
+
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // Save states to localStorage when changed
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("gym_members", JSON.stringify(members));
+    }
+  }, [members, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("gym_trainers", JSON.stringify(trainers));
+    }
+  }, [trainers, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("gym_content", JSON.stringify(content));
+    }
+  }, [content, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("gym_brand_settings", JSON.stringify(brandSettings));
+    }
+  }, [brandSettings, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem("gym_broadcasts", JSON.stringify(broadcasts));
+    }
+  }, [broadcasts, isLoaded]);
 
   const handleLogin = (user: AuthUser) => {
     setAuthUser(user);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gym_active_user", JSON.stringify(user));
+    }
+    
     if (user.role === "admin")   setView("admin");
     else if (user.role === "trainer") setView("trainer");
     else if (user.role === "guest")   setView("guest");
@@ -122,6 +216,9 @@ export default function App() {
 
   const handleLogout = () => {
     setAuthUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("gym_active_user");
+    }
     setView("landing");
   };
 
@@ -133,6 +230,17 @@ export default function App() {
   const handleUpdateTrainer = (id: number, data: Partial<TrainerData>) => {
     setTrainers(p => p.map(t => t.id === id ? { ...t, ...data } : t));
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-t-primary border-white/10 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-white/60">Loading Gym Portal...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="size-full dark">
@@ -147,13 +255,79 @@ export default function App() {
       )}
 
       <div className={content.announcementActive && (view === "landing" || view === "profiles") ? "pt-8" : ""}>
-        {view === "landing"  && <Landing      onNavigate={handleNavigate} content={content} trainers={trainers} />}
-        {view === "login"    && <LoginPage    onLogin={handleLogin} onNavigate={handleNavigate} members={DEMO_MEMBERS} trainers={trainers} />}
-        {view === "guest"    && <GuestPortal  user={authUser!} onNavigate={handleNavigate} trainers={trainers} />}
-        {view === "user"     && <UserPortal   user={authUser!} onNavigate={handleNavigate} trainers={trainers} />}
-        {view === "trainer"  && <TrainerPortal user={authUser!} trainers={trainers} onNavigate={handleNavigate} onUpdateTrainer={handleUpdateTrainer} />}
-        {view === "profiles" && <TrainerProfiles trainers={trainers} onNavigate={handleNavigate} authUser={authUser} />}
-        {view === "admin"    && <AdminPanel   onNavigate={handleNavigate} content={content} onUpdateContent={setContent} trainers={trainers} onUpdateTrainers={setTrainers} />}
+        {view === "landing"  && (
+          <Landing
+            onNavigate={handleNavigate}
+            content={content}
+            trainers={trainers}
+            brandSettings={brandSettings}
+          />
+        )}
+        {view === "login"    && (
+          <LoginPage
+            onLogin={handleLogin}
+            onNavigate={handleNavigate}
+            members={members}
+            setMembers={setMembers}
+            trainers={trainers}
+            brandSettings={brandSettings}
+          />
+        )}
+        {view === "guest"    && (
+          <GuestPortal
+            user={authUser!}
+            onNavigate={handleNavigate}
+            trainers={trainers}
+            broadcasts={broadcasts}
+            brandSettings={brandSettings}
+            setMembers={setMembers}
+            onUpdateUser={setAuthUser}
+          />
+        )}
+        {view === "user"     && (
+          <UserPortal
+            user={authUser!}
+            onNavigate={handleNavigate}
+            trainers={trainers}
+            broadcasts={broadcasts}
+            brandSettings={brandSettings}
+            setMembers={setMembers}
+            onUpdateUser={setAuthUser}
+          />
+        )}
+        {view === "trainer"  && (
+          <TrainerPortal
+            user={authUser!}
+            trainers={trainers}
+            onNavigate={handleNavigate}
+            onUpdateTrainer={handleUpdateTrainer}
+            broadcasts={broadcasts}
+            brandSettings={brandSettings}
+          />
+        )}
+        {view === "profiles" && (
+          <TrainerProfiles
+            trainers={trainers}
+            onNavigate={handleNavigate}
+            authUser={authUser}
+            brandSettings={brandSettings}
+          />
+        )}
+        {view === "admin"    && (
+          <AdminPanel
+            onNavigate={handleNavigate}
+            content={content}
+            onUpdateContent={setContent}
+            trainers={trainers}
+            onUpdateTrainers={setTrainers}
+            members={members}
+            setMembers={setMembers}
+            brandSettings={brandSettings}
+            onUpdateBrandSettings={setBrandSettings}
+            broadcasts={broadcasts}
+            setBroadcasts={setBroadcasts}
+          />
+        )}
       </div>
     </div>
   );

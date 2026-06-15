@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Dumbbell, Eye, EyeOff, ArrowRight, Check, User, Users, Shield } from "lucide-react";
-import type { AuthUser, Plan, TrainerData } from "../App";
+import type { AuthUser, Plan, TrainerData, BrandSettings } from "../App";
+import { RazorpayModal } from "./RazorpayModal";
 
 const H = (s = 32) => ({ fontFamily: "'Barlow Condensed', sans-serif", fontSize: `${s}px`, fontWeight: 800, lineHeight: 1 });
 
@@ -15,27 +16,39 @@ interface LoginPageProps {
   onLogin: (user: AuthUser) => void;
   onNavigate: (v: string) => void;
   members: AuthUser[];
+  setMembers: React.Dispatch<React.SetStateAction<AuthUser[]>>;
   trainers: TrainerData[];
+  brandSettings: BrandSettings;
 }
 
-export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageProps) {
+export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, brandSettings }: LoginPageProps) {
   const [tab, setTab]             = useState<"member" | "signup" | "guest" | "trainer">("member");
   const [email, setEmail]         = useState("");
   const [password, setPassword]   = useState("");
   const [showPass, setShowPass]   = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("PRO");
+  
+  // Signup state
   const [signupName, setSignupName]     = useState("");
   const [signupEmail, setSignupEmail]   = useState("");
   const [signupPhone, setSignupPhone]   = useState("");
   const [signupPass, setSignupPass]     = useState("");
   const [signupAge, setSignupAge]       = useState("");
   const [signupHeight, setSignupHeight] = useState("");
+  
+  // Guest state
   const [guestName, setGuestName]       = useState("");
   const [guestPhone, setGuestPhone]     = useState("");
   const [guestEmail, setGuestEmail]     = useState("");
   const [guestGoal, setGuestGoal]       = useState("");
+  
+  // Trainer state
   const [trainerEmail, setTrainerEmail] = useState("");
   const [trainerPass, setTrainerPass]   = useState("");
+
+  // Payment Modal state
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [pendingUser, setPendingUser] = useState<AuthUser | null>(null);
 
   /* Member login */
   const handleMemberLogin = () => {
@@ -45,34 +58,63 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
       onLogin({ id: "ADMIN", name: "Admin", email, role: "admin" });
       return;
     }
-    const member = members.find(m => m.email === email);
+    const member = members.find(m => m.email.toLowerCase() === email.toLowerCase());
     if (!member || password !== "member123") { toast.error("Invalid credentials"); return; }
     toast.success(`Welcome back, ${member.name}!`);
     onLogin(member);
   };
 
-  /* New member signup */
-  const handleSignup = () => {
+  /* New member signup click */
+  const handleSignupSubmit = () => {
     if (!signupName || !signupEmail || !signupPass) { toast.error("Fill in all required fields"); return; }
+    if (members.some(m => m.email.toLowerCase() === signupEmail.toLowerCase())) {
+      toast.error("Email is already registered");
+      return;
+    }
     const roleMap: Record<Plan, AuthUser["role"]> = { STARTER: "starter", PRO: "pro", ELITE: "elite" };
-    const newUser: AuthUser = {
-      id: `U${Date.now()}`, name: signupName, email: signupEmail, phone: signupPhone,
-      role: roleMap[selectedPlan], plan: selectedPlan,
+    const tempUser: AuthUser = {
+      id: `U${Date.now()}`,
+      name: signupName,
+      email: signupEmail,
+      phone: signupPhone || "+91 99999 99999",
+      role: roleMap[selectedPlan],
+      plan: selectedPlan,
       joined: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       age: signupAge ? parseInt(signupAge) : undefined,
       height: signupHeight ? parseInt(signupHeight) : undefined,
     };
-    toast.success(`Welcome to IronFit, ${signupName}! 🎉`, { description: `${selectedPlan} plan activated.` });
-    onLogin(newUser);
+    
+    setPendingUser(tempUser);
+    setIsPaymentOpen(true);
+  };
+
+  /* Successful payment completion */
+  const handlePaymentSuccess = (paymentDetails: { method: string; transactionId: string }) => {
+    if (!pendingUser) return;
+    
+    // Add to members list
+    setMembers(prev => [...prev, pendingUser]);
+    toast.success(`Welcome to ${brandSettings.name}, ${pendingUser.name}! 🎉`, {
+      description: `${pendingUser.plan} plan activated. Trans ID: ${paymentDetails.transactionId} (${paymentDetails.method})`
+    });
+    onLogin(pendingUser);
+    setPendingUser(null);
   };
 
   /* Guest free pass */
   const handleGuestAccess = () => {
     if (!guestName || !guestPhone) { toast.error("Name and phone are required"); return; }
     const guest: AuthUser = {
-      id: `G${Date.now()}`, name: guestName, email: guestEmail, phone: guestPhone,
-      role: "guest", hasUsedFreePass: true,
+      id: `G${Date.now()}`,
+      name: guestName,
+      email: guestEmail || `${guestName.toLowerCase().replace(/\s+/g, "")}@example.com`,
+      phone: guestPhone,
+      role: "guest",
+      hasUsedFreePass: true,
+      joined: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
     };
+
+    setMembers(prev => [...prev, guest]);
     toast.success(`Welcome, ${guestName}! Your free day pass is active.`, { description: "Valid today only." });
     onLogin(guest);
   };
@@ -89,8 +131,26 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
   const tabClass = (t: typeof tab) =>
     `px-5 py-2.5 text-sm transition-all flex items-center gap-2 ${tab === t ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"}`;
 
+  const currentPlanObj = PLANS.find(p => p.id === selectedPlan);
+
   return (
     <div className="min-h-screen bg-background flex" style={{ fontFamily: "'Inter', sans-serif" }}>
+      
+      {/* Razorpay Integration Modal */}
+      {isPaymentOpen && pendingUser && currentPlanObj && (
+        <RazorpayModal
+          isOpen={isPaymentOpen}
+          onClose={() => setIsPaymentOpen(false)}
+          onSuccess={handlePaymentSuccess}
+          amount={currentPlanObj.price}
+          itemName={`${currentPlanObj.label} Membership`}
+          customerName={pendingUser.name}
+          customerEmail={pendingUser.email}
+          customerPhone={pendingUser.phone || ""}
+          gymName={brandSettings.name}
+        />
+      )}
+
       {/* Left panel – hero */}
       <div className="hidden lg:flex w-1/2 relative overflow-hidden flex-col justify-between p-12">
         <div className="absolute inset-0">
@@ -98,19 +158,27 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
           <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(10,10,10,0.96) 40%, rgba(239,45,45,0.2) 100%)" }} />
         </div>
         <div className="relative z-10 flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded flex items-center justify-center"><Dumbbell size={16} className="text-white" /></div>
-          <span style={{ ...H(22), letterSpacing: "0.05em" }} className="text-foreground">IRON<span className="text-primary">FIT</span></span>
+          {brandSettings.logoUrl ? (
+            <img src={brandSettings.logoUrl} alt="Logo" className="h-8 object-contain" />
+          ) : (
+            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center"><Dumbbell size={16} className="text-white" /></div>
+          )}
+          <span style={{ ...H(22), letterSpacing: "0.05em" }} className="text-foreground uppercase">{brandSettings.name}</span>
         </div>
         <div className="relative z-10">
-          <h1 style={H(56)} className="text-foreground mb-4 leading-none">YOUR GYM.<br /><span className="text-primary">YOUR RULES.</span></h1>
-          <p className="text-muted-foreground leading-relaxed mb-8 text-sm max-w-sm">Join 2,400+ members transforming their lives with world-class trainers and state-of-the-art facilities.</p>
+          <h1 style={H(56)} className="text-foreground mb-4 leading-none uppercase">YOUR GYM.<br /><span className="text-primary">YOUR RULES.</span></h1>
+          <p className="text-muted-foreground leading-relaxed mb-8 text-sm max-w-sm">Join {members.filter(m => m.role !== "guest").length + 2400}+ members transforming their lives with world-class trainers and state-of-the-art facilities.</p>
           <div className="flex gap-6">
-            {[["2,400+", "Members"], ["48", "Classes/wk"], ["4.9★", "Rating"]].map(([n, l]) => (
+            {[
+              [`${members.filter(m => m.role !== "guest").length + 2400}+`, "Members"],
+              ["48", "Classes/wk"],
+              ["4.9★", "Rating"]
+            ].map(([n, l]) => (
               <div key={l}><p style={H(28)} className="text-primary">{n}</p><p className="text-muted-foreground text-xs mt-0.5">{l}</p></div>
             ))}
           </div>
         </div>
-        <div className="relative z-10 text-muted-foreground text-xs">© 2026 IronFit. All rights reserved.</div>
+        <div className="relative z-10 text-muted-foreground text-xs">© 2026 {brandSettings.name}. All rights reserved.</div>
       </div>
 
       {/* Right panel – form */}
@@ -147,9 +215,9 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
             <p className="text-center text-muted-foreground text-xs">Don't have an account? <button onClick={() => setTab("signup")} className="text-primary hover:underline">Sign up</button></p>
             <div className="mt-6 p-3 bg-card border border-border text-xs text-muted-foreground" style={{ borderRadius: "var(--radius)" }}>
               <p className="mb-1 text-foreground text-xs font-medium">Demo accounts (password: member123)</p>
-              <p>PRO: anjali@ironfit.in</p>
-              <p>ELITE: rohan@ironfit.in</p>
-              <p>STARTER: sneha@ironfit.in</p>
+              {members.map(m => (
+                <p key={m.id}>{m.plan}: {m.email} ({m.name})</p>
+              ))}
               <p className="mt-1">Admin: admin@ironfit.in / admin123</p>
             </div>
           </div>
@@ -158,7 +226,7 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
         {/* ── SIGN UP ── */}
         {tab === "signup" && (
           <div className="max-w-lg w-full mx-auto">
-            <h2 style={H(28)} className="text-foreground mb-1">JOIN IRONFIT</h2>
+            <h2 style={H(28)} className="text-foreground mb-1">JOIN {brandSettings.name.toUpperCase()}</h2>
             <p className="text-muted-foreground text-sm mb-5">Create your membership account.</p>
 
             {/* Plan picker */}
@@ -181,7 +249,7 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
               {[
                 { label: "Full Name *", val: signupName, set: setSignupName, type: "text",   placeholder: "Anjali Verma",    col: 2 },
                 { label: "Email *",     val: signupEmail,set: setSignupEmail,type: "email",  placeholder: "anjali@email.com",col: 1 },
-                { label: "Phone",       val: signupPhone,set: setSignupPhone,type: "tel",    placeholder: "+91 98765 43210", col: 1 },
+                { label: "Phone *",     val: signupPhone,set: setSignupPhone,type: "tel",    placeholder: "+91 98765 43210", col: 1 },
                 { label: "Password *",  val: signupPass, set: setSignupPass, type: "password",placeholder: "Min 8 chars",    col: 1 },
                 { label: "Age",         val: signupAge,  set: setSignupAge,  type: "number", placeholder: "e.g. 28",         col: 1 },
                 { label: "Height (cm)", val: signupHeight,set: setSignupHeight,type:"number",placeholder: "e.g. 165",        col: 1 },
@@ -192,8 +260,8 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
                 </div>
               ))}
             </div>
-            <button onClick={handleSignup} className="w-full bg-primary text-white py-3 text-sm hover:bg-primary/90 transition-colors" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "16px", fontWeight: 700, letterSpacing: "0.05em" }}>
-              CREATE ACCOUNT — ₹{PLANS.find(p => p.id === selectedPlan)?.price.toLocaleString()}/mo
+            <button onClick={handleSignupSubmit} className="w-full bg-primary text-white py-3 text-sm hover:bg-primary/90 transition-colors" style={{ borderRadius: "var(--radius)", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "16px", fontWeight: 700, letterSpacing: "0.05em" }}>
+              PROCEED TO PAY — ₹{PLANS.find(p => p.id === selectedPlan)?.price.toLocaleString()}/mo
             </button>
             <p className="text-center text-muted-foreground text-xs mt-3">Already a member? <button onClick={() => setTab("member")} className="text-primary hover:underline">Log in</button></p>
           </div>
@@ -205,7 +273,7 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
             <div className="inline-flex items-center gap-2 border border-primary/30 bg-primary/10 px-3 py-1 mb-4" style={{ borderRadius: "var(--radius)" }}>
               <span className="text-primary text-xs">🎁 1 FREE DAY PASS</span>
             </div>
-            <h2 style={H(28)} className="text-foreground mb-1">TRY IRONFIT FREE</h2>
+            <h2 style={H(28)} className="text-foreground mb-1">TRY {brandSettings.name.toUpperCase()} FREE</h2>
             <p className="text-muted-foreground text-sm mb-6">Fill in your details to claim your complimentary day pass. No credit card required.</p>
             <div className="space-y-3 mb-5">
               {[
@@ -247,7 +315,12 @@ export function LoginPage({ onLogin, onNavigate, members, trainers }: LoginPageP
             </button>
             <div className="mt-5 p-3 bg-card border border-border text-xs text-muted-foreground" style={{ borderRadius: "var(--radius)" }}>
               <p className="mb-1 text-foreground text-xs font-medium">Demo trainer accounts (password: trainer123)</p>
-              {[["priya@ironfit.in","Priya Sharma"],["arjun@ironfit.in","Arjun Mehta"],["neha@ironfit.in","Neha Kapoor"],["rahul@ironfit.in","Rahul Nair"]].map(([e,n]) => (
+              {[
+                ["priya@ironfit.in","Priya Sharma"],
+                ["arjun@ironfit.in","Arjun Mehta"],
+                ["neha@ironfit.in","Neha Kapoor"],
+                ["rahul@ironfit.in","Rahul Nair"]
+              ].map(([e,n]) => (
                 <p key={e}>{e} — {n}</p>
               ))}
             </div>

@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, X, Menu
 } from "lucide-react";
 import { toast } from "sonner";
-import type { SiteContent, TrainerData } from "../App";
+import type { SiteContent, TrainerData, BrandSettings } from "../App";
 
 const H = (s = 32) => ({ fontFamily: "'Barlow Condensed', sans-serif", fontSize: `${s}px`, fontWeight: 800, lineHeight: 1 });
 
@@ -14,6 +14,7 @@ interface LandingProps {
   onNavigate: (view: string) => void;
   content: SiteContent;
   trainers: TrainerData[];
+  brandSettings: BrandSettings;
 }
 
 const CLASSES = [
@@ -23,7 +24,7 @@ const CLASSES = [
   { id: 4, name: "HIIT Circuit",    trainer: "Rahul Nair",    time: "6:00 PM", day: "Tue", spots: 5,  image: "photo-1534438327276-14e5300c3a48" },
 ];
 
-export function Landing({ onNavigate, content, trainers }: LandingProps) {
+export function Landing({ onNavigate, content, trainers, brandSettings }: LandingProps) {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly" | "annual">("monthly");
   const [leadForm, setLeadForm] = useState({ name: "", phone: "", email: "" });
   const [leadSubmitted, setLeadSubmitted] = useState(false);
@@ -57,8 +58,16 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-8 py-4 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded flex items-center justify-center"><Dumbbell size={18} className="text-white" /></div>
-          <span style={{ ...H(22), letterSpacing: "0.05em" }} className="text-foreground">IRON<span className="text-primary">FIT</span></span>
+          {brandSettings.logoUrl ? (
+            <img src={brandSettings.logoUrl} alt="Logo" className="h-8 object-contain" />
+          ) : (
+            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center"><Dumbbell size={18} className="text-white" /></div>
+          )}
+          <span style={{ ...H(22), letterSpacing: "0.05em" }} className="text-foreground uppercase">
+            {brandSettings.name.split(" ").map((w, i) => (
+              i === 1 ? <span key={i} className="text-primary">{w} </span> : <span key={i}>{w} </span>
+            ))}
+          </span>
         </div>
         <div className="hidden md:flex items-center gap-6">
           <button onClick={() => onNavigate("profiles")} className="text-muted-foreground hover:text-foreground text-sm transition-colors">Trainers</button>
@@ -148,105 +157,21 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
           </div>
           <div className="flex items-center gap-8">
             {[[content.stat1Num, content.stat1Label],[content.stat2Num, content.stat2Label],[content.stat3Num, content.stat3Label]].map(([num, label]) => (
-              <div key={label}><div style={H(36)} className="text-primary">{num}</div><div className="text-muted-foreground text-xs tracking-widest uppercase">{label}</div></div>
-            ))}
-          </div>
-        </div>
-        <div className="absolute bottom-6 right-8 flex gap-3">
-          <button onClick={() => onNavigate("login")} className="text-xs text-muted-foreground border border-border px-3 py-1 hover:border-primary transition-colors" style={{ borderRadius: "var(--radius)" }}>Login →</button>
-        </div>
-      </section>
-
-      {/* TRAINER ANNOUNCEMENTS FEED */}
-      {trainers.some(t => t.announcements.length > 0) && (
-        <section className="py-10 px-8 md:px-16 bg-card border-y border-border">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center gap-3 mb-5">
-              <Bell size={16} className="text-primary" />
-              <h2 style={H(18)} className="text-foreground">TRAINER ANNOUNCEMENTS</h2>
-              <button onClick={() => onNavigate("profiles")} className="ml-auto text-primary text-xs hover:underline">View all trainers →</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {trainers.flatMap(t => t.announcements.map(a => ({ ...a, trainerName: t.name, specialty: t.specialty }))).slice(0, 3).map(a => (
-                <div key={a.id} className="flex gap-3 p-4 border border-border" style={{ borderRadius: "var(--radius)" }}>
-                  <div className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
-                  <div>
-                    <p className="text-foreground text-sm">{a.text}</p>
-                    <p className="text-muted-foreground text-xs mt-1">{a.trainerName} · {a.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CLASSES */}
-      <section id="classes" className="py-24 px-8 md:px-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <p className="text-primary text-xs tracking-widest uppercase mb-3">Schedule</p>
-              <h2 style={{ ...H(56), fontSize: "clamp(36px,5vw,56px)" }} className="text-foreground">TODAY'S CLASSES</h2>
-            </div>
-            <button onClick={() => onNavigate("login")} className="text-primary text-sm flex items-center gap-1 hover:gap-2 transition-all">View all <ChevronRight size={16} /></button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {CLASSES.map(cls => (
-              <div key={cls.id} className="group relative overflow-hidden border border-border hover:border-primary/40 transition-all cursor-pointer" style={{ borderRadius: "var(--radius)" }} onClick={() => onNavigate("login")}>
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img src={`https://images.unsplash.com/${cls.image}?w=400&h=300&fit=crop&auto=format`} alt={cls.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(10,10,10,0.95) 40%, transparent)" }} />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="flex items-center gap-2 mb-2"><Clock size={12} className="text-primary" /><span className="text-primary text-xs">{cls.time}</span></div>
-                  <h3 style={H(20)} className="text-white mb-1">{cls.name}</h3>
-                  <p className="text-muted-foreground text-xs mb-3">{cls.trainer}</p>
-                  {cls.spots === 0 ? (
-                    <span className="text-xs text-muted-foreground border border-border px-2 py-0.5" style={{ borderRadius: "var(--radius)" }}>WAITLIST</span>
-                  ) : (
-                    <span className="text-xs text-primary border border-primary/30 px-2 py-0.5" style={{ borderRadius: "var(--radius)" }}>{cls.spots} spots left</span>
-                  )}
-                </div>
+              <div key={label}>
+                <p style={H(32)} className="text-foreground">{num}</p>
+                <p className="text-muted-foreground text-xs">{label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TRAINERS PREVIEW */}
-      <section id="about" className="py-20 px-8 md:px-16 bg-card">
+      {/* AMENITIES */}
+      <section id="about" className="py-24 px-8 md:px-16">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <p className="text-primary text-xs tracking-widest uppercase mb-3">Our Team</p>
-              <h2 style={{ ...H(56), fontSize: "clamp(36px,5vw,56px)" }} className="text-foreground">MEET THE TRAINERS</h2>
-            </div>
-            <button onClick={() => onNavigate("profiles")} className="text-primary text-sm flex items-center gap-1 hover:gap-2 transition-all">All profiles <ChevronRight size={16} /></button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {trainers.filter(t => t.active).slice(0, 4).map(t => (
-              <div key={t.id} className="group cursor-pointer" onClick={() => onNavigate("profiles")}>
-                <div className="aspect-square overflow-hidden mb-3 bg-secondary" style={{ borderRadius: "var(--radius)" }}>
-                  <img src={`https://images.unsplash.com/${t.image}?w=300&h=300&fit=crop&auto=format`} alt={t.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <h3 style={H(16)} className="text-foreground">{t.name}</h3>
-                <p className="text-primary text-xs">{t.specialty}</p>
-                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                  <Star size={10} className="text-yellow-400 fill-yellow-400" />{t.rating} · {t.exp}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="py-24 px-8 md:px-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-primary text-xs tracking-widest uppercase mb-3">Why IronFit</p>
-            <h2 style={{ ...H(56), fontSize: "clamp(36px,5vw,56px)" }} className="text-foreground">EVERYTHING YOU NEED</h2>
+          <div className="text-center md:text-left mb-12">
+            <p className="text-primary text-xs tracking-widest uppercase mb-3">State-of-the-Art</p>
+            <h2 style={{ ...H(56), fontSize: "clamp(36px,5vw,56px)" }} className="text-foreground leading-none">EVERYTHING YOU NEED<br />TO CRUSH GOALS.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -269,8 +194,44 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
         </div>
       </section>
 
+      {/* CLASSES */}
+      <section id="classes" className="py-24 px-8 md:px-16 bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-baseline justify-between mb-12">
+            <div>
+              <p className="text-primary text-xs tracking-widest uppercase mb-3">Live Sessions</p>
+              <h2 style={{ ...H(56), fontSize: "clamp(36px,5vw,56px)" }} className="text-foreground">POPULAR CLASSES</h2>
+            </div>
+            <button onClick={() => onNavigate("login")} className="text-primary text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all mt-4 md:mt-0">View Full Schedule <ChevronRight size={16} /></button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {CLASSES.map(c => (
+              <div key={c.id} className="bg-background border border-border overflow-hidden hover:border-primary/30 transition-colors" style={{ borderRadius: "var(--radius)" }}>
+                <div className="h-48 relative">
+                  <img src={`https://images.unsplash.com/${c.image}?w=400&h=300&fit=crop&auto=format`} alt={c.name} className="w-full h-full object-cover" />
+                  <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-[10px] text-white px-2 py-1 flex items-center gap-1" style={{ borderRadius: "var(--radius)" }}>
+                    <Clock size={10} /> {c.time}
+                  </div>
+                </div>
+                <div className="p-4">
+                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5" style={{ borderRadius: "calc(var(--radius) - 2px)" }}>{c.day}</span>
+                  <h3 style={H(20)} className="text-foreground mt-2.5 mb-1">{c.name}</h3>
+                  <p className="text-muted-foreground text-xs mb-3">Trainer: {c.trainer}</p>
+                  <div className="flex items-center justify-between text-xs pt-3 border-t border-border/40">
+                    <span className={c.spots === 0 ? "text-primary font-semibold" : "text-muted-foreground"}>
+                      {c.spots === 0 ? "FULL" : `${c.spots} Spots Left`}
+                    </span>
+                    <button onClick={() => onNavigate("login")} className="text-primary font-bold hover:underline">Book</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* PRICING */}
-      <section id="pricing" className="py-24 px-8 md:px-16 bg-card">
+      <section id="pricing" className="py-24 px-8 md:px-16">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-primary text-xs tracking-widest uppercase mb-3">Membership</p>
@@ -321,7 +282,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
 
       {/* BLOG POSTS */}
       {content.blogPosts.filter(b => b.published).length > 0 && (
-        <section className="py-20 px-8 md:px-16">
+        <section className="py-20 px-8 md:px-16 bg-card border-t border-border">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-end justify-between mb-10">
               <div>
@@ -331,7 +292,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {content.blogPosts.filter(b => b.published).map(post => (
-                <div key={post.id} className="bg-card border border-border p-6 hover:border-primary/30 transition-all cursor-pointer group" style={{ borderRadius: "var(--radius)" }}>
+                <div key={post.id} className="bg-background border border-border p-6 hover:border-primary/30 transition-all cursor-pointer group" style={{ borderRadius: "var(--radius)" }}>
                   <p className="text-primary text-xs mb-3">{post.date}</p>
                   <h3 style={H(18)} className="text-foreground mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">{post.excerpt}</p>
@@ -344,7 +305,7 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
       )}
 
       {/* LEAD CAPTURE */}
-      <section className="py-24 px-8 md:px-16 bg-card relative overflow-hidden">
+      <section className="py-24 px-8 md:px-16 relative overflow-hidden border-t border-border">
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
         <div className="relative max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1">
@@ -356,12 +317,12 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
               <div className="bg-card border border-primary/30 p-6 text-center" style={{ borderRadius: "var(--radius)" }}>
                 <Check size={32} className="text-primary mx-auto mb-3" />
                 <p style={H(20)} className="text-foreground">YOU'RE IN!</p>
-                <p className="text-muted-foreground text-sm">We'll call you within 24 hours to set up your free session.</p>
+                <p className="text-muted-foreground text-sm">We'll contact you at your phone/email to set up your free session.</p>
               </div>
             ) : (
-              <div className="bg-background border border-border p-6 space-y-3" style={{ borderRadius: "var(--radius)" }}>
+              <div className="bg-card border border-border p-6 space-y-3" style={{ borderRadius: "var(--radius)" }}>
                 {[{k:"name",p:"Full Name",t:"text"},{k:"phone",p:"Phone Number",t:"tel"},{k:"email",p:"Email Address",t:"email"}].map(({k,p,t}) => (
-                  <input key={k} type={t} placeholder={p} value={leadForm[k as keyof typeof leadForm]} onChange={e => setLeadForm(f => ({ ...f, [k]: e.target.value }))} className="w-full bg-muted border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" style={{ borderRadius: "var(--radius)" }} />
+                  <input key={k} type={t} placeholder={p} value={leadForm[k as keyof typeof leadForm]} onChange={e => setLeadForm(f => ({ ...f, [k]: e.target.value }))} className="w-full bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" style={{ borderRadius: "var(--radius)" }} />
                 ))}
                 <button onClick={() => setLeadSubmitted(true)} className="w-full bg-primary text-white py-3 hover:bg-primary/90 transition-colors" style={{ ...H(16), letterSpacing: "0.05em", borderRadius: "var(--radius)" }}>CLAIM FREE DAY PASS</button>
               </div>
@@ -371,14 +332,18 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-border py-12 px-8 md:px-16">
+      <footer className="border-t border-border py-12 px-8 md:px-16 bg-card">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center"><Dumbbell size={12} className="text-white" /></div>
-              <span style={{ ...H(18) }} className="text-foreground">IRONFIT</span>
+              {brandSettings.logoUrl ? (
+                <img src={brandSettings.logoUrl} alt="Logo" className="h-6 object-contain" />
+              ) : (
+                <div className="w-6 h-6 bg-primary rounded flex items-center justify-center"><Dumbbell size={12} className="text-white" /></div>
+              )}
+              <span style={{ ...H(18) }} className="text-foreground uppercase">{brandSettings.name}</span>
             </div>
-            <p className="text-muted-foreground text-xs leading-relaxed mb-4">Mumbai's premier fitness destination since 2018.</p>
+            <p className="text-muted-foreground text-xs leading-relaxed mb-4">{brandSettings.name} premier fitness destination.</p>
             <div className="flex gap-3">
               {[Instagram, Twitter, Youtube].map((Icon, i) => (
                 <div key={i} className="w-8 h-8 border border-border flex items-center justify-center hover:border-primary cursor-pointer transition-colors" style={{ borderRadius: "var(--radius)" }}>
@@ -413,17 +378,23 @@ export function Landing({ onNavigate, content, trainers }: LandingProps) {
           <div>
             <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "13px", fontWeight: 700 }} className="text-foreground tracking-widest mb-4">CONTACT</h4>
             <div className="space-y-3">
-              {[{ Icon: MapPin, text: "Andheri West, Mumbai 400053" },{ Icon: Phone, text: "+91 98765 43210" },{ Icon: Mail, text: "hello@ironfit.in" }].map(({ Icon, text }) => (
-                <div key={text} className="flex items-start gap-2">
-                  <Icon size={12} className="text-primary mt-0.5 shrink-0" />
-                  <span className="text-muted-foreground text-xs">{text}</span>
-                </div>
-              ))}
+              <div className="flex items-start gap-2">
+                <MapPin size={12} className="text-primary mt-0.5 shrink-0" />
+                <span className="text-muted-foreground text-xs">Andheri West, Mumbai 400053</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Phone size={12} className="text-primary mt-0.5 shrink-0" />
+                <a href={`tel:${brandSettings.phone}`} className="text-muted-foreground text-xs hover:text-foreground">+{brandSettings.phone}</a>
+              </div>
+              <div className="flex items-start gap-2">
+                <Mail size={12} className="text-primary mt-0.5 shrink-0" />
+                <a href={`mailto:${brandSettings.email}`} className="text-muted-foreground text-xs hover:text-foreground">{brandSettings.email}</a>
+              </div>
             </div>
           </div>
         </div>
         <div className="max-w-6xl mx-auto mt-8 pt-8 border-t border-border flex items-center justify-between">
-          <p className="text-muted-foreground text-xs">© 2026 IronFit. All rights reserved.</p>
+          <p className="text-muted-foreground text-xs">© 2026 {brandSettings.name}. All rights reserved.</p>
           <p className="text-muted-foreground text-xs">Powered by Razorpay · GST: 27XXXXX1234X1ZX</p>
         </div>
       </footer>
