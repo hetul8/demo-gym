@@ -71,6 +71,8 @@ export interface BrandSettings {
   logoUrl: string;
   phone: string;
   email: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
 }
 
 export interface BroadcastMessage {
@@ -125,6 +127,8 @@ const INITIAL_BRAND_SETTINGS: BrandSettings = {
   logoUrl: "",
   phone: "919876543210",
   email: "info@ironfit.in",
+  supabaseUrl: "",
+  supabaseAnonKey: "",
 };
 
 /* ─── APP ───────────────────────────────────────────────────── */
@@ -134,7 +138,7 @@ export default function App() {
   const [view, setView]         = useState<View>("landing");
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
 
-  // Reactive states persisted to localStorage
+  // Reactive states persisted to localStorage/Supabase
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [trainers, setTrainers] = useState<TrainerData[]>([]);
   const [content, setContent]   = useState<SiteContent>(INITIAL_CONTENT);
@@ -143,9 +147,41 @@ export default function App() {
   
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Hydrate states from localStorage on mount
+  // Supabase REST Helpers
+  const getSupabaseHeaders = (key: string) => ({
+    "apikey": key,
+    "Authorization": `Bearer ${key}`,
+    "Content-Type": "application/json"
+  });
+
+  // Sync state from Supabase
+  const syncFromSupabase = async (url: string, key: string) => {
+    try {
+      // Members
+      const memRes = await fetch(`${url}/rest/v1/members?select=*`, { headers: getSupabaseHeaders(key) });
+      if (memRes.ok) {
+        const memData = await memRes.json();
+        if (memData && memData.length > 0) setMembers(memData);
+      }
+      
+      // Broadcasts
+      const bRes = await fetch(`${url}/rest/v1/broadcasts?select=*`, { headers: getSupabaseHeaders(key) });
+      if (bRes.ok) {
+        const bData = await bRes.json();
+        if (bData) setBroadcasts(bData);
+      }
+    } catch (err) {
+      console.error("Supabase sync failed:", err);
+    }
+  };
+
+  // Hydrate states from localStorage on mount (always starts logged out)
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const storedBrand = localStorage.getItem("gym_brand_settings");
+      const currentBrand: BrandSettings = storedBrand ? JSON.parse(storedBrand) : INITIAL_BRAND_SETTINGS;
+      setBrandSettings(currentBrand);
+
       const storedMembers = localStorage.getItem("gym_members");
       setMembers(storedMembers ? JSON.parse(storedMembers) : DEFAULT_MEMBERS);
 
@@ -155,28 +191,37 @@ export default function App() {
       const storedContent = localStorage.getItem("gym_content");
       setContent(storedContent ? JSON.parse(storedContent) : INITIAL_CONTENT);
 
-      const storedBrand = localStorage.getItem("gym_brand_settings");
-      setBrandSettings(storedBrand ? JSON.parse(storedBrand) : INITIAL_BRAND_SETTINGS);
-
       const storedBroadcasts = localStorage.getItem("gym_broadcasts");
       setBroadcasts(storedBroadcasts ? JSON.parse(storedBroadcasts) : []);
 
-      // Restore active user session if exists
-      const storedUser = localStorage.getItem("gym_active_user");
-      if (storedUser) {
-        setAuthUser(JSON.parse(storedUser));
+      // If Supabase credentials exist, pull from Supabase REST API
+      if (currentBrand.supabaseUrl && currentBrand.supabaseAnonKey) {
+        syncFromSupabase(currentBrand.supabaseUrl, currentBrand.supabaseAnonKey);
       }
 
       setIsLoaded(true);
     }
   }, []);
 
-  // Save states to localStorage when changed
+  // Save states when changed
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("gym_members", JSON.stringify(members));
+      
+      // Sync to Supabase if credentials exist
+      if (brandSettings.supabaseUrl && brandSettings.supabaseAnonKey) {
+        const url = brandSettings.supabaseUrl;
+        const key = brandSettings.supabaseAnonKey;
+        
+        // Push batch upserts
+        fetch(`${url}/rest/v1/members`, {
+          method: "POST",
+          headers: { ...getSupabaseHeaders(key), "Prefer": "resolution=merge-duplicates" },
+          body: JSON.stringify(members)
+        }).catch(err => console.error(err));
+      }
     }
-  }, [members, isLoaded]);
+  }, [members, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -199,15 +244,22 @@ export default function App() {
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("gym_broadcasts", JSON.stringify(broadcasts));
+
+      if (brandSettings.supabaseUrl && brandSettings.supabaseAnonKey) {
+        const url = brandSettings.supabaseUrl;
+        const key = brandSettings.supabaseAnonKey;
+        
+        fetch(`${url}/rest/v1/broadcasts`, {
+          method: "POST",
+          headers: { ...getSupabaseHeaders(key), "Prefer": "resolution=merge-duplicates" },
+          body: JSON.stringify(broadcasts)
+        }).catch(err => console.error(err));
+      }
     }
-  }, [broadcasts, isLoaded]);
+  }, [broadcasts, isLoaded, brandSettings.supabaseUrl, brandSettings.supabaseAnonKey]);
 
   const handleLogin = (user: AuthUser) => {
     setAuthUser(user);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("gym_active_user", JSON.stringify(user));
-    }
-    
     if (user.role === "admin")   setView("admin");
     else if (user.role === "trainer") setView("trainer");
     else if (user.role === "guest")   setView("guest");
@@ -216,9 +268,6 @@ export default function App() {
 
   const handleLogout = () => {
     setAuthUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("gym_active_user");
-    }
     setView("landing");
   };
 

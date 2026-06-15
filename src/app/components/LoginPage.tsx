@@ -66,22 +66,76 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
 
   /* New member signup click */
   const handleSignupSubmit = () => {
-    if (!signupName || !signupEmail || !signupPass) { toast.error("Fill in all required fields"); return; }
+    // 1. Basic empty fields checks
+    if (!signupName.trim() || !signupEmail.trim() || !signupPass.trim()) {
+      toast.error("Please fill in Name, Email, and Password.");
+      return;
+    }
+
+    // 2. Name validation (letters & spaces, min 2 chars)
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(signupName.trim())) {
+      toast.error("Name must contain only letters and spaces (min 2 chars).");
+      return;
+    }
+
+    // 3. Email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(signupEmail.trim())) {
+      toast.error("Please enter a valid email address (e.g. name@domain.com).");
+      return;
+    }
+
+    // 4. Phone validation (exactly 10 digits)
+    const cleanPhone = signupPhone.replace(/[^0-9]/g, "");
+    if (cleanPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile phone number.");
+      return;
+    }
+
+    // 5. Password length check
+    if (signupPass.length < 6) {
+      toast.error("Password must be at least 6 characters long.");
+      return;
+    }
+
+    // 6. Age verification
+    if (signupAge) {
+      const ageNum = parseInt(signupAge);
+      if (isNaN(ageNum) || ageNum < 12 || ageNum > 100) {
+        toast.error("Age must be a positive integer between 12 and 100.");
+        return;
+      }
+    }
+
+    // 7. Height verification
+    if (signupHeight) {
+      const heightNum = parseInt(signupHeight);
+      if (isNaN(heightNum) || heightNum < 100 || heightNum > 250) {
+        toast.error("Height must be a positive integer between 100 and 250 cm.");
+        return;
+      }
+    }
+
     if (members.some(m => m.email.toLowerCase() === signupEmail.toLowerCase())) {
       toast.error("Email is already registered");
       return;
     }
+
     const roleMap: Record<Plan, AuthUser["role"]> = { STARTER: "starter", PRO: "pro", ELITE: "elite" };
     const tempUser: AuthUser = {
       id: `U${Date.now()}`,
-      name: signupName,
-      email: signupEmail,
-      phone: signupPhone || "+91 99999 99999",
+      name: signupName.trim(),
+      email: signupEmail.trim().toLowerCase(),
+      phone: `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`,
       role: roleMap[selectedPlan],
       plan: selectedPlan,
       joined: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       age: signupAge ? parseInt(signupAge) : undefined,
       height: signupHeight ? parseInt(signupHeight) : undefined,
+      status: "active",
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      revenue: PLANS.find(p => p.id === selectedPlan)?.price || 0,
     };
     
     setPendingUser(tempUser);
@@ -103,15 +157,42 @@ export function LoginPage({ onLogin, onNavigate, members, setMembers, trainers, 
 
   /* Guest free pass */
   const handleGuestAccess = () => {
-    if (!guestName || !guestPhone) { toast.error("Name and phone are required"); return; }
+    if (!guestName.trim() || !guestPhone.trim()) {
+      toast.error("Name and phone number are required.");
+      return;
+    }
+
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(guestName.trim())) {
+      toast.error("Guest name must contain only letters and spaces (min 2 chars).");
+      return;
+    }
+
+    const cleanPhone = guestPhone.replace(/[^0-9]/g, "");
+    if (cleanPhone.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile phone number.");
+      return;
+    }
+
+    if (guestEmail.trim()) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(guestEmail.trim())) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
+    }
+
     const guest: AuthUser = {
       id: `G${Date.now()}`,
-      name: guestName,
-      email: guestEmail || `${guestName.toLowerCase().replace(/\s+/g, "")}@example.com`,
-      phone: guestPhone,
+      name: guestName.trim(),
+      email: guestEmail.trim().toLowerCase() || `${guestName.toLowerCase().replace(/\s+/g, "")}@example.com`,
+      phone: `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`,
       role: "guest",
       hasUsedFreePass: true,
       joined: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      status: "active",
+      expires: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      revenue: 0
     };
 
     setMembers(prev => [...prev, guest]);

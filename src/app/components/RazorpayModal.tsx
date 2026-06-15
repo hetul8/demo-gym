@@ -100,6 +100,32 @@ export function RazorpayModal({
     return v;
   };
 
+  const isCardValid = () => {
+    const cleanNum = cardNumber.replace(/\s+/g, "");
+    if (cleanNum.length !== 16) return false;
+    
+    const expiryMatch = cardExpiry.match(/^(\d{2})\/(\d{2})$/);
+    if (!expiryMatch) return false;
+    const month = parseInt(expiryMatch[1]);
+    const year = parseInt("20" + expiryMatch[2]);
+    if (month < 1 || month > 12) return false;
+    
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    if (year < currentYear || (year === currentYear && month < currentMonth)) return false;
+    
+    if (cardCvv.length !== 3) return false;
+    if (cardName.trim().length < 2) return false;
+    
+    return true;
+  };
+
+  const isUpiValid = () => {
+    const cleanUpi = upiId.trim();
+    return cleanUpi.includes("@") && cleanUpi.length >= 5 && !cleanUpi.endsWith("@");
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="relative w-full max-w-[420px] bg-[#1a1c24] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
@@ -223,8 +249,8 @@ export function RazorpayModal({
                   </div>
                   <button
                     onClick={() => handleStartPayment("Card")}
-                    disabled={!cardNumber || !cardExpiry || !cardCvv}
-                    className="w-full mt-2 bg-primary hover:bg-primary/90 disabled:bg-white/10 disabled:text-white/40 text-white font-medium text-xs py-2.5 rounded transition-all cursor-pointer"
+                    disabled={!isCardValid()}
+                    className="w-full mt-2 bg-primary hover:bg-primary/90 disabled:bg-white/10 disabled:text-white/40 text-white font-medium text-xs py-2.5 rounded transition-all cursor-pointer font-bold"
                   >
                     Pay ₹{amount.toLocaleString()} Securely
                   </button>
@@ -251,8 +277,8 @@ export function RazorpayModal({
                   </div>
                   <button
                     onClick={() => handleStartPayment("UPI")}
-                    disabled={!upiId.includes("@")}
-                    className="w-full mt-auto bg-primary hover:bg-primary/90 disabled:bg-white/10 disabled:text-white/40 text-white font-medium text-xs py-2.5 rounded transition-all cursor-pointer"
+                    disabled={!isUpiValid()}
+                    className="w-full mt-auto bg-primary hover:bg-primary/90 disabled:bg-white/10 disabled:text-white/40 text-white font-medium text-xs py-2.5 rounded transition-all cursor-pointer font-bold"
                   >
                     Pay ₹{amount.toLocaleString()}
                   </button>

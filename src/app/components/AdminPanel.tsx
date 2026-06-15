@@ -142,24 +142,51 @@ export function AdminPanel({
   };
 
   const handleAddMember = () => {
-    if (!newMemberForm.name || !newMemberForm.email) { toast.error("Name and email required"); return; }
-    const formattedPhone = newMemberForm.phone.replace(/[^0-9+]/g, "") || "+91 99999 99999";
+    const nameTrim = newMemberForm.name.trim();
+    const emailTrim = newMemberForm.email.trim();
+    const phoneClean = newMemberForm.phone.replace(/[^0-9]/g, "");
+
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(nameTrim)) {
+      toast.error("Name must contain only letters and spaces (min 2 chars).");
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(emailTrim)) {
+      toast.error("Please enter a valid email address (e.g. name@domain.com).");
+      return;
+    }
+
+    if (phoneClean.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile phone number.");
+      return;
+    }
+
+    if (members.some(m => m.email.toLowerCase() === emailTrim.toLowerCase())) {
+      toast.error("Email is already registered as a member.");
+      return;
+    }
+
     const newM: AuthUser = {
       id: `U${Date.now()}`,
-      name: newMemberForm.name,
-      email: newMemberForm.email,
-      phone: formattedPhone,
+      name: nameTrim,
+      email: emailTrim.toLowerCase(),
+      phone: `+91 ${phoneClean.slice(0, 5)} ${phoneClean.slice(5)}`,
       role: newMemberForm.plan.toLowerCase() as AuthUser["role"],
       plan: newMemberForm.plan as AuthUser["plan"],
       joined: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       age: 25,
       height: 170,
+      status: "active",
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      revenue: newMemberForm.plan === "ELITE" ? 3499 : newMemberForm.plan === "PRO" ? 1999 : 999
     };
     
     setMembers(p => [...p, newM]);
     setAddMemberModal(false);
     setNewMemberForm({ name: "", email: "", phone: "", plan: "PRO" });
-    toast.success(`${newMemberForm.name} added successfully`);
+    toast.success(`${nameTrim} added successfully`);
   };
 
   const handleAddClass = () => {
@@ -172,20 +199,48 @@ export function AdminPanel({
 
   /* Add Trainer */
   const handleAddTrainer = () => {
-    if (!newTrainerForm.name || !newTrainerForm.email || !newTrainerForm.specialty) {
-      toast.error("Please fill in Name, Email, and Specialty");
+    const nameTrim = newTrainerForm.name.trim();
+    const emailTrim = newTrainerForm.email.trim();
+    const specialtyTrim = newTrainerForm.specialty.trim();
+
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(nameTrim)) {
+      toast.error("Name must contain only letters and spaces (min 2 chars).");
       return;
     }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(emailTrim)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (!specialtyTrim) {
+      toast.error("Specialty is required.");
+      return;
+    }
+
+    const feeNum = parseInt(newTrainerForm.fee);
+    if (isNaN(feeNum) || feeNum <= 0) {
+      toast.error("Fee must be a positive number.");
+      return;
+    }
+
+    if (trainers.some(t => t.email.toLowerCase() === emailTrim.toLowerCase())) {
+      toast.error("Email is already registered as a trainer.");
+      return;
+    }
+
     const newT: TrainerData = {
       id: trainers.length + 1,
-      name: newTrainerForm.name,
-      email: newTrainerForm.email,
-      specialty: newTrainerForm.specialty,
-      cert: newTrainerForm.cert || "Certified Professional",
-      fee: parseInt(newTrainerForm.fee) || 1200,
-      exp: newTrainerForm.exp || "3 yrs",
-      bio: newTrainerForm.bio || "Personal Fitness Trainer.",
-      image: newTrainerForm.image || "photo-1534438327276-14e5300c3a48",
+      name: nameTrim,
+      email: emailTrim.toLowerCase(),
+      specialty: specialtyTrim,
+      cert: newTrainerForm.cert.trim() || "Certified Professional",
+      fee: feeNum,
+      exp: newTrainerForm.exp.trim() || "3 yrs",
+      bio: newTrainerForm.bio.trim() || "Personal Fitness Trainer.",
+      image: newTrainerForm.image.trim() || "photo-1534438327276-14e5300c3a48",
       rating: 4.8,
       reviews: 12,
       sessions: 48,
@@ -530,6 +585,69 @@ export function AdminPanel({
                   className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
                   style={{ borderRadius: "var(--radius)" }}
                 />
+              </div>
+
+              <div className="border-t border-border/60 pt-4 mt-2">
+                <h4 className="text-xs text-primary font-bold uppercase mb-3">Supabase Cloud Database (Optional)</h4>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-muted-foreground text-xs block mb-1.5 font-medium">Supabase Project URL</label>
+                    <input
+                      type="text"
+                      value={settingsForm.supabaseUrl || ""}
+                      onChange={e => setSettingsForm(p => ({ ...p, supabaseUrl: e.target.value.trim() }))}
+                      placeholder="https://yourproject.supabase.co"
+                      className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
+                      style={{ borderRadius: "var(--radius)" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-muted-foreground text-xs block mb-1.5 font-medium">Supabase Anon Key</label>
+                    <input
+                      type="text"
+                      value={settingsForm.supabaseAnonKey || ""}
+                      onChange={e => setSettingsForm(p => ({ ...p, supabaseAnonKey: e.target.value.trim() }))}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      className="w-full bg-background border border-border px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary"
+                      style={{ borderRadius: "var(--radius)" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-secondary/40 p-4 border border-border mt-4 space-y-2" style={{ borderRadius: "var(--radius)" }}>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase text-primary">Supabase Table Setup Instructions</p>
+                  <p className="text-xs text-muted-foreground">To synchronize members and broadcasts between different browsers in real-time, execute this SQL in your Supabase Dashboard:</p>
+                  <pre className="text-[10px] bg-black/60 p-2 overflow-x-auto text-muted-foreground rounded border border-white/5" style={{ fontFamily: "monospace" }}>
+{`-- Create members table
+create table members (
+  id text primary key,
+  name text not null,
+  email text not null unique,
+  role text not null,
+  plan text,
+  phone text,
+  "trainerId" int,
+  "hasUsedFreePass" boolean,
+  joined text,
+  age int,
+  height int,
+  status text,
+  expires text,
+  revenue float
+);
+
+-- Create broadcasts table
+create table broadcasts (
+  id text primary key,
+  sender text not null,
+  text text not null,
+  timestamp text not null,
+  "targetGroup" text not null
+);`}
+                  </pre>
+                </div>
               </div>
             </div>
           </div>
