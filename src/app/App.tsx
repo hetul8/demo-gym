@@ -132,7 +132,7 @@ const INITIAL_BRAND_SETTINGS: BrandSettings = {
   email: "info@ironfit.in",
   supabaseUrl: "",
   supabaseAnonKey: "",
-  googleSheetUrl: "https://script.google.com/macros/s/AKfycbwfdKsUyPs7Faw2Pib1Ii7aqc7o9nXIacHjl1q846duBtHPMQUAI0obEElmxYwmJ9TX/exec"
+  googleSheetUrl: "https://script.google.com/macros/s/AKfycbzyQQ8sZs4xtCfhhPOPh8Igbt6EByiS-ye3ZlU0fisvar9ZEG2OeBNaM3LIMOdjD12p/exec"
 };
 
 /* ─── APP ───────────────────────────────────────────────────── */
