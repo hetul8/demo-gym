@@ -732,6 +732,87 @@ export function AdminPanel({
                   />
                   <p className="text-[10px] text-white/40 mt-1">Provide a Google Apps Script Web App URL to push live member and broadcast records automatically.</p>
                 </div>
+
+                <div className="bg-secondary/40 p-4 border border-border mt-4 space-y-2" style={{ borderRadius: "var(--radius)" }}>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase text-primary">Google Apps Script Setup Instructions</p>
+                  <p className="text-xs text-muted-foreground text-[11px]">To set up your Google Sheet database sync and resolve the timestamp-only issue, please follow these steps:</p>
+                  <ol className="text-xs text-muted-foreground text-[11px] list-decimal list-inside space-y-1">
+                    <li>Open your Google Sheet (e.g. <strong>db demo gym</strong>).</li>
+                    <li>Click on <strong>Extensions</strong> &gt; <strong>Apps Script</strong>.</li>
+                    <li>Delete any code in the editor, and paste the code below:</li>
+                  </ol>
+                  <pre className="text-[10px] bg-black/60 p-2 overflow-x-auto text-muted-foreground rounded border border-white/5 max-h-[220px]" style={{ fontFamily: "monospace" }}>
+{`function doGet(e) {
+  var type = e.parameter.type;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (type === "get_data") {
+    var result = { members: [], broadcasts: [] };
+    var mSheet = ss.getSheetByName("members");
+    if (mSheet) result.members = getRowsData(mSheet);
+    var bSheet = ss.getSheetByName("broadcasts");
+    if (bSheet) result.broadcasts = getRowsData(bSheet);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+  return ContentService.createTextOutput("Invalid parameters");
+}
+
+function doPost(e) {
+  try {
+    var postData = JSON.parse(e.postData.contents);
+    var type = postData.type;
+    var data = postData.data;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(type);
+    if (!sheet) sheet = ss.insertSheet(type);
+    else sheet.clear();
+    if (data && data.length > 0) {
+      var headers = [];
+      data.forEach(function(item) {
+        Object.keys(item).forEach(function(key) {
+          if (headers.indexOf(key) === -1) headers.push(key);
+        });
+      });
+      sheet.appendRow(headers);
+      var rows = data.map(function(item) {
+        return headers.map(function(key) {
+          var val = item[key];
+          return val === undefined || val === null ? "" : String(val);
+        });
+      });
+      sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", msg: error.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getRowsData(sheet) {
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  var headers = rows[0];
+  var data = [];
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
+      if (val === "true" || val === true) val = true;
+      else if (val === "false" || val === false) val = false;
+      else if (!isNaN(val) && val !== "") val = Number(val);
+      obj[headers[j]] = val;
+    }
+    data.push(obj);
+  }
+  return data;
+}`}
+                  </pre>
+                  <ol start={4} className="text-xs text-muted-foreground text-[11px] list-decimal list-inside space-y-1 mt-2">
+                    <li>Click <strong>Deploy</strong> &gt; <strong>New deployment</strong>.</li>
+                    <li>Select Type: <strong>Web app</strong>. Execute as: <strong>Me</strong>. Who has access: <strong>Anyone</strong>.</li>
+                    <li>Click <strong>Deploy</strong>, authorize permissions, copy the generated Web App URL, and paste it into the field above!</li>
+                  </ol>
+                </div>
               </div>
 
               <div className="border-t border-border/60 pt-4 mt-2">
