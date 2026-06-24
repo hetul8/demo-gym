@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Dumbbell, Calendar, Users, Bell, LogOut, Home,
   Plus, Edit2, Trash2, Check, X, Clock, Star,
-  ChevronRight, Save, Eye, ToggleLeft, ToggleRight
+  ChevronRight, Save, Eye, ToggleLeft, ToggleRight, Menu
 } from "lucide-react";
 import type { AuthUser, TrainerData, BrandSettings, BroadcastMessage } from "../App";
 
@@ -28,6 +28,7 @@ interface TrainerPortalProps {
 export function TrainerPortal({ user, trainers, onNavigate, onUpdateTrainer, broadcasts, brandSettings }: TrainerPortalProps) {
   const trainer = trainers.find(t => t.id === user.trainerId);
   const [tab, setTab] = useState<"overview" | "classes" | "availability" | "announcements" | "profile">("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   /* Local editable copies */
   const [bio, setBio]             = useState(trainer?.bio ?? "");
@@ -112,9 +113,24 @@ export function TrainerPortal({ user, trainers, onNavigate, onUpdateTrainer, bro
   ] as const;
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex flex-col lg:flex-row h-screen bg-background overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+      
+      {/* Mobile Top Header Bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-sidebar w-full z-40 h-14 shrink-0">
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-secondary rounded text-foreground">
+          <Menu size={20} />
+        </button>
+        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "18px", fontWeight: 800 }} className="text-foreground uppercase">{brandSettings?.name || "IronFit Gym"}</span>
+        <img src={`https://images.unsplash.com/${trainer.image}?w=32&h=32&fit=crop&auto=format`} alt={trainer.name} className="w-8 h-8 rounded-full object-cover" />
+      </div>
+
+      {/* Mobile Sidebar backdrop overlay */}
+      {isSidebarOpen && (
+        <div onClick={() => setIsSidebarOpen(false)} className="lg:hidden fixed inset-0 bg-black/60 z-40" style={{ transition: "opacity 0.3s ease" }} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-56 flex flex-col border-r border-border bg-sidebar shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 flex flex-col border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-5 border-b border-border flex items-center gap-2">
           <div className="w-7 h-7 bg-primary rounded flex items-center justify-center"><Dumbbell size={14} className="text-white" /></div>
           <span style={{ ...H(16), letterSpacing: "0.05em" }} className="text-foreground">TRAINER<span className="text-primary"> HUB</span></span>
@@ -130,7 +146,7 @@ export function TrainerPortal({ user, trainers, onNavigate, onUpdateTrainer, bro
         </div>
         <nav className="flex-1 p-3 space-y-0.5">
           {nav.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id)} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
+            <button key={id} onClick={() => { setTab(id); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
               <Icon size={15} /> {label}
             </button>
           ))}

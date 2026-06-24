@@ -5,7 +5,7 @@ import {
   Home, LogOut, Search, CheckCircle, XCircle, AlertCircle,
   Plus, Edit2, Trash2, Send, Download, Dumbbell, Bell,
   X, Check, RefreshCw, ArrowUp, ArrowDown, Eye, UserPlus,
-  ToggleLeft, ToggleRight, Save, Image, Type, DollarSign, Settings
+  ToggleLeft, ToggleRight, Save, Image, Type, DollarSign, Settings, Menu
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -86,6 +86,7 @@ export function AdminPanel({
   setBroadcasts
 }: AdminPanelProps) {
   const [tab, setTab] = useState<"overview"|"members"|"financial"|"classes"|"content"|"trainers_admin"|"leads"|"settings">("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [classes, setClasses]     = useState(INITIAL_CLASSES);
   const [leads, setLeads]         = useState(INITIAL_LEADS);
   const [memberSearch, setMemberSearch] = useState("");
@@ -335,9 +336,24 @@ export function AdminPanel({
   ] as const;
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex flex-col lg:flex-row h-screen bg-background overflow-hidden animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
+      
+      {/* Mobile Top Header Bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-sidebar w-full z-40 h-14 shrink-0">
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-secondary rounded text-foreground">
+          <Menu size={20} />
+        </button>
+        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "18px", fontWeight: 800 }} className="text-foreground uppercase">{brandSettings.name}</span>
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-sm">A</div>
+      </div>
+
+      {/* Mobile Sidebar backdrop overlay */}
+      {isSidebarOpen && (
+        <div onClick={() => setIsSidebarOpen(false)} className="lg:hidden fixed inset-0 bg-black/60 z-40" style={{ transition: "opacity 0.3s ease" }} />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="w-60 flex flex-col border-r border-border bg-sidebar shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-60 flex flex-col border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-5 border-b border-border flex items-center gap-2">
           {brandSettings.logoUrl ? (
             <img src={brandSettings.logoUrl} alt="Logo" className="h-6 object-contain" />
@@ -348,7 +364,7 @@ export function AdminPanel({
         </div>
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {sideNav.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setTab(id)} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
+            <button key={id} onClick={() => { setTab(id); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
               <Icon size={14} /> {label}
               {id === "leads" && <span className="ml-auto text-xs bg-primary/20 text-primary px-1.5 rounded-full">{leads.filter(l=>l.status==="new").length}</span>}
               {id === "content" && <span className="ml-auto text-xs bg-green-400/20 text-green-400 px-1.5 rounded-full">Live</span>}

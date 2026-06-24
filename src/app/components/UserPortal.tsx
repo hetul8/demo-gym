@@ -5,7 +5,7 @@ import {
   LogOut, Home, Clock, Check, X, ChevronRight, Plus,
   Activity, Target, Flame, Star, AlertCircle, User,
   Search, Zap, ArrowUp, ArrowDown, Download, RefreshCw,
-  Lock, BarChart2, Droplets, Weight, CheckCircle, XCircle
+  Lock, BarChart2, Droplets, Weight, CheckCircle, XCircle, Menu
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -77,6 +77,7 @@ export function UserPortal({
 }: UserPortalProps) {
   const level = planLevel(user.role);
   const [tab, setTab] = useState<"dashboard"|"classes"|"trainers"|"health"|"membership"|"notifications">("dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [bookedClasses, setBookedClasses] = useState<Set<number>>(new Set([1, 4]));
   const [waitlist, setWaitlist]           = useState<Set<number>>(new Set());
   const [classCapacities, setClassCapacities] = useState<Record<number,number>>(Object.fromEntries(ALL_CLASSES.map(c => [c.id, c.booked])));
@@ -213,7 +214,7 @@ export function UserPortal({
   const planColor = planLabel === "ELITE" ? "text-orange-400" : planLabel === "PRO" ? "text-primary" : "text-muted-foreground";
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex flex-col lg:flex-row h-screen bg-background overflow-hidden animate-fade-in" style={{ fontFamily: "'Inter', sans-serif" }}>
       
       {/* Razorpay upgrade checkout */}
       {isUpgradePaymentOpen && targetUpgradePlan && (
@@ -231,8 +232,22 @@ export function UserPortal({
         />
       )}
 
+      {/* Mobile Top Header Bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-sidebar w-full z-40 h-14 shrink-0">
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-secondary rounded text-foreground">
+          <Menu size={20} />
+        </button>
+        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "18px", fontWeight: 800 }} className="text-foreground uppercase">{brandSettings.name}</span>
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-sm">{user.name[0]}</div>
+      </div>
+
+      {/* Mobile Sidebar backdrop overlay */}
+      {isSidebarOpen && (
+        <div onClick={() => setIsSidebarOpen(false)} className="lg:hidden fixed inset-0 bg-black/60 z-40" style={{ transition: "opacity 0.3s ease" }} />
+      )}
+
       {/* ── SIDEBAR ── */}
-      <aside className="w-56 flex flex-col border-r border-border bg-sidebar shrink-0">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-56 flex flex-col border-r border-border bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0 shrink-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-5 border-b border-border flex items-center gap-2">
           {brandSettings.logoUrl ? (
             <img src={brandSettings.logoUrl} alt="Logo" className="h-6 object-contain" />
@@ -254,7 +269,7 @@ export function UserPortal({
         </div>
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {sideNav.map(({ id, label, icon: Icon, minLevel }) => (
-            <button key={id} onClick={() => level >= minLevel ? setTab(id) : setUpgradeModal(true)} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : level < minLevel ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
+            <button key={id} onClick={() => { if (level >= minLevel) { setTab(id); setIsSidebarOpen(false); } else { setUpgradeModal(true); } }} className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all ${tab === id ? "bg-primary/10 text-primary" : level < minLevel ? "text-muted-foreground/40 cursor-not-allowed" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} style={{ borderRadius: "var(--radius)" }}>
               <Icon size={15} />
               <span className="flex-1 text-left">{label}</span>
               {level < minLevel && <Lock size={10} className="text-muted-foreground/40" />}
